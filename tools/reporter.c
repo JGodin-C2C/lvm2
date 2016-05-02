@@ -1061,3 +1061,72 @@ int devtypes(struct cmd_context *cmd, int argc, char **argv)
 {
 	return _report(cmd, argc, argv, DEVTYPES);
 }
+
+#define REPORT_FORMAT_NAME_NATIVE "native"
+#define REPORT_FORMAT_NAME_EXTENDED "extended"
+#define REPORT_FORMAT_NAME_JSON "json"
+
+int report_format_init(struct cmd_context *cmd, struct dm_report_group **report_group,
+		       struct dm_report **status_rh)
+{
+	static char status_report_name[] = "status";
+	struct report_args args = {0};
+	const char *format_str;
+	dm_report_group_type_t group_type;
+	struct dm_report_group *new_report_group;
+	struct dm_report *tmp_status_rh = NULL;
+
+	if (!(format_str = arg_str_value(cmd, reportformat_ARG, NULL)))
+		return 1;
+
+	if (!strcmp(format_str, REPORT_FORMAT_NAME_NATIVE))
+		return 1;
+
+	if (!strcmp(format_str, REPORT_FORMAT_NAME_EXTENDED))
+		group_type = DM_REPORT_GROUP_EXTENDED;
+	else if (!strcmp(format_str, REPORT_FORMAT_NAME_JSON))
+		group_type = DM_REPORT_GROUP_JSON;
+	else {
+		log_error("%s: unknown report format.", format_str);
+		log_error("Supported report formats: %s, %s, %s.",
+			  REPORT_FORMAT_NAME_NATIVE,
+			  REPORT_FORMAT_NAME_EXTENDED,
+			  REPORT_FORMAT_NAME_JSON);
+		return 0;
+	}
+
+	if (!(new_report_group = dm_report_group_create(group_type, NULL))) {
+		log_error("Failed to create report group.");
+		return 0;
+	}
+
+	if (!*status_rh) {
+		args.report_type = CMDSTATUS;
+		if (!_config_report(cmd, &args))
+			goto_bad;
+
+		if (!(tmp_status_rh = report_init(NULL, args.options, args.keys, &args.report_type,
+						  args.separator, args.aligned, args.buffered, args.headings,
+						  args.field_prefixes, args.quoted, args.columns_as_rows,
+						  args.selection))) {
+			log_error("Failed to create status report.");
+			goto bad;
+		}
+	}
+
+	if (!(dm_report_group_push(new_report_group, *status_rh ? : tmp_status_rh, status_report_name))) {
+		log_error("Failed to add status report to report group.");
+		goto bad;
+	}
+
+	*report_group = new_report_group;
+	if (tmp_status_rh)
+		*status_rh = tmp_status_rh;
+	return 1;
+bad:
+	if (!dm_report_group_destroy(new_report_group))
+		stack;
+	if (tmp_status_rh)
+		dm_report_free(tmp_status_rh);
+	return 0;
+}
