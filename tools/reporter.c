@@ -26,6 +26,7 @@ typedef enum {
 
 struct single_report_args {
 	report_type_t report_type;
+	char report_prefix[32];
 	int args_are_pvs;
 	const char *keys;
 	const char *options;
@@ -820,6 +821,31 @@ static int _get_report_selection(struct cmd_context *cmd,
 	return r;
 }
 
+static int _get_report_prefix(report_type_t report_type, char *buf, size_t buf_len)
+{
+	const char *report_prefix;
+	size_t len;
+
+	report_prefix = report_get_field_prefix(report_type);
+	len = strlen(report_prefix);
+	if (report_prefix[len - 1] == '_')
+		len--;
+
+	if (!len) {
+		log_error(INTERNAL_ERROR "_get_report_prefix: no prefix "
+			  "found for report type 0x%x", report_type);
+		return 0;
+	}
+
+	if (!dm_strncpy(buf, report_prefix, buf_len)) {
+		log_error("_get_report_prefix: dm_strncpy failed");
+		return 0;
+	}
+	buf[len] = '\0';
+
+	return 1;
+}
+
 static int _do_report(struct cmd_context *cmd, struct report_args *args, struct single_report_args *single_args)
 {
 	struct processing_handle *handle = NULL;
@@ -847,6 +873,9 @@ static int _do_report(struct cmd_context *cmd, struct report_args *args, struct 
 				    report_type, &lv_info_needed,
 				    &lv_segment_status_needed,
 				    &report_type))
+		goto_out;
+
+	if (!dm_report_group_push(handle->report_group, report_handle, (void *) single_args->report_prefix))
 		goto_out;
 
 	/*
@@ -956,6 +985,9 @@ static int _config_report(struct cmd_context *cmd, struct report_args *args, str
 
 	/* Check PV specifics and do extra changes/actions if needed. */
 	_check_pv_list(cmd, args, single_args);
+
+	if (!_get_report_prefix(single_args->report_type, single_args->report_prefix, sizeof(single_args->report_prefix)))
+		return_0;
 
 	switch (single_args->report_type) {
 		case DEVTYPES:
