@@ -21,6 +21,11 @@ typedef enum {
 	REPORT_IDX_NULL = -1,
 	REPORT_IDX_SINGLE,
 	REPORT_IDX_STATUS,
+	REPORT_IDX_FULL_VGS,
+	REPORT_IDX_FULL_LVS,
+	REPORT_IDX_FULL_PVS,
+	REPORT_IDX_FULL_PVSEGS,
+	REPORT_IDX_FULL_SEGS,
 	REPORT_IDX_COUNT
 } report_idx_t;
 
@@ -45,6 +50,7 @@ struct report_args {
 	int quoted;
 	int columns_as_rows;
 	const char *separator;
+	struct volume_group *full_report_vg;
 	struct single_report_args single_args[REPORT_IDX_COUNT];
 };
 
@@ -454,8 +460,10 @@ static int _get_final_report_type(int args_are_pvs,
 	}
 
 	/* Change report type if fields specified makes this necessary */
-	if ((report_type & PVSEGS) ||
-	    ((report_type & (PVS | LABEL)) && (report_type & (LVS | LVSINFO | LVSSTATUS | LVSINFOSTATUS))))
+	if (report_type & FULL)
+		report_type = FULL;
+	else if ((report_type & PVSEGS) ||
+		 ((report_type & (PVS | LABEL)) && (report_type & (LVS | LVSINFO | LVSSTATUS | LVSINFOSTATUS))))
 		report_type = PVSEGS;
 	else if ((report_type & PVS) ||
 		 ((report_type & LABEL) && (report_type & VGS)))
@@ -826,6 +834,11 @@ static int _get_report_prefix(report_type_t report_type, char *buf, size_t buf_l
 	const char *report_prefix;
 	size_t len;
 
+	if (report_type == FULL) {
+		buf[0] = '\0';
+		return 1;
+	}
+
 	report_prefix = report_get_field_prefix(report_type);
 	len = strlen(report_prefix);
 	if (report_prefix[len - 1] == '_')
@@ -846,18 +859,17 @@ static int _get_report_prefix(report_type_t report_type, char *buf, size_t buf_l
 	return 1;
 }
 
-static int _do_report(struct cmd_context *cmd, struct report_args *args, struct single_report_args *single_args)
+static int _do_report(struct cmd_context *cmd, struct processing_handle *handle,
+		      struct report_args *args, struct single_report_args *single_args)
 {
-	struct processing_handle *handle = NULL;
+	void *orig_custom_handle = handle->custom_handle;
 	report_type_t report_type = single_args->report_type;
 	void *report_handle = NULL;
 	int lock_global = 0;
 	int lv_info_needed;
 	int lv_segment_status_needed;
+	int report_in_group = 0;
 	int r = ECMD_FAILED;
-
-	if (!(handle = init_processing_handle(cmd, NULL)))
-		goto_out;
 
 	if (!(report_handle = report_init(cmd, single_args->options, single_args->keys, &report_type,
 					  args->separator, args->aligned, args->buffered,
@@ -865,8 +877,6 @@ static int _do_report(struct cmd_context *cmd, struct report_args *args, struct 
 					  args->columns_as_rows, single_args->selection)))
 		goto_out;
 
-	handle->internal_report_for_select = 0;
-	handle->include_historical_lvs = cmd->include_historical_lvs;
 	handle->custom_handle = report_handle;
 
 	if (!_get_final_report_type(single_args->args_are_pvs,
@@ -877,6 +887,7 @@ static int _do_report(struct cmd_context *cmd, struct report_args *args, struct 
 
 	if (!dm_report_group_push(handle->report_group, report_handle, (void *) single_args->report_prefix))
 		goto_out;
+	report_in_group = 1;
 
 	/*
 	 * We lock VG_GLOBAL to enable use of metadata cache.
@@ -902,48 +913,72 @@ static int _do_report(struct cmd_context *cmd, struct report_args *args, struct 
 		case LVSINFOSTATUS:
 			/* fall through */
 		case LVS:
-			r = process_each_lv(cmd, args->argc, args->argv, NULL, NULL, 0, handle,
-					    lv_info_needed && !lv_segment_status_needed ? &_lvs_with_info_single :
-					    !lv_info_needed && lv_segment_status_needed ? &_lvs_with_status_single :
-					    lv_info_needed && lv_segment_status_needed ? &_lvs_with_info_and_status_single :
-											 &_lvs_single);
+			if (args->full_report_vg)
+				r = _report_all_in_vg(cmd, handle, args->full_report_vg, LVS, lv_info_needed, lv_segment_status_needed);
+			else
+				r = process_each_lv(cmd, args->argc, args->argv, NULL, NULL, 0, handle,
+						    lv_info_needed && !lv_segment_status_needed ? &_lvs_with_info_single :
+						    !lv_info_needed && lv_segment_status_needed ? &_lvs_with_status_single :
+						    lv_info_needed && lv_segment_status_needed ? &_lvs_with_info_and_status_single :
+												 &_lvs_single);
 			break;
 		case VGS:
-			r = process_each_vg(cmd, args->argc, args->argv, NULL, NULL, 0,
-					    handle, &_vgs_single);
+			if (args->full_report_vg)
+				r = _report_all_in_vg(cmd, handle, args->full_report_vg, VGS, lv_info_needed, lv_segment_status_needed);
+			else
+				r = process_each_vg(cmd, args->argc, args->argv, NULL, NULL, 0,
+						    handle, &_vgs_single);
 			break;
 		case LABEL:
 			r = process_each_label(cmd, args->argc, args->argv,
 					       handle, &_label_single);
 			break;
 		case PVS:
-			if (single_args->args_are_pvs)
-				r = process_each_pv(cmd, args->argc, args->argv, NULL,
-						    arg_is_set(cmd, all_ARG), 0,
-						    handle, &_pvs_single);
-			else
-				r = process_each_vg(cmd, args->argc, args->argv, NULL, NULL,
-						    0, handle, &_pvs_in_vg);
+			if (args->full_report_vg)
+				r = _report_all_in_vg(cmd, handle, args->full_report_vg, PVS, lv_info_needed, lv_segment_status_needed);
+			else {
+				if (single_args->args_are_pvs)
+					r = process_each_pv(cmd, args->argc, args->argv, NULL,
+							    arg_is_set(cmd, all_ARG), 0,
+							    handle, &_pvs_single);
+				else
+					r = process_each_vg(cmd, args->argc, args->argv, NULL, NULL,
+							    0, handle, &_pvs_in_vg);
+			}
 			break;
 		case SEGS:
-			r = process_each_lv(cmd, args->argc, args->argv, NULL, NULL, 0, handle,
-					    lv_info_needed && !lv_segment_status_needed ? &_lvsegs_with_info_single :
-					    !lv_info_needed && lv_segment_status_needed ? &_lvsegs_with_status_single :
-					    lv_info_needed && lv_segment_status_needed ? &_lvsegs_with_info_and_status_single :
-											 &_lvsegs_single);
+			if (args->full_report_vg)
+				r = _report_all_in_vg(cmd, handle, args->full_report_vg, SEGS, lv_info_needed, lv_segment_status_needed);
+			else
+				r = process_each_lv(cmd, args->argc, args->argv, NULL, NULL, 0, handle,
+						    lv_info_needed && !lv_segment_status_needed ? &_lvsegs_with_info_single :
+						    !lv_info_needed && lv_segment_status_needed ? &_lvsegs_with_status_single :
+						    lv_info_needed && lv_segment_status_needed ? &_lvsegs_with_info_and_status_single :
+												 &_lvsegs_single);
 			break;
 		case PVSEGS:
-			if (single_args->args_are_pvs)
-				r = process_each_pv(cmd, args->argc, args->argv, NULL,
-						    arg_is_set(cmd, all_ARG), 0,
-						    handle,
-						    lv_info_needed && !lv_segment_status_needed ? &_pvsegs_with_lv_info_single :
-						    !lv_info_needed && lv_segment_status_needed ? &_pvsegs_with_lv_status_single :
-						    lv_info_needed && lv_segment_status_needed ? &_pvsegs_with_lv_info_and_status_single :
+			if (args->full_report_vg)
+				r = _report_all_in_vg(cmd, handle, args->full_report_vg, PVSEGS, lv_info_needed, lv_segment_status_needed);
+			else {
+				if (single_args->args_are_pvs)
+					r = process_each_pv(cmd, args->argc, args->argv, NULL,
+							    arg_is_set(cmd, all_ARG), 0,
+							    handle,
+							    lv_info_needed && !lv_segment_status_needed ? &_pvsegs_with_lv_info_single :
+							    !lv_info_needed && lv_segment_status_needed ? &_pvsegs_with_lv_status_single :
+							    lv_info_needed && lv_segment_status_needed ? &_pvsegs_with_lv_info_and_status_single :
 												 &_pvsegs_single);
-			else
-				r = process_each_vg(cmd, args->argc, args->argv, NULL, NULL,
-						    0, handle, &_pvsegs_in_vg);
+				else
+					r = process_each_vg(cmd, args->argc, args->argv, NULL, NULL,
+							    0, handle, &_pvsegs_in_vg);
+			}
+			break;
+		case FULL:
+			/*
+			 * Full report's subreports already covered by combinations above with args->full_report_vg.
+			 * We shouldn't see report_type == FULL in this function.
+			 */
+			log_error(INTERNAL_ERROR "_do_report: full report requested at incorrect level");
 			break;
 		case CMDSTATUS:
 			/* Status is reported throughout the code via report_cmdstatus calls. */
@@ -966,12 +1001,61 @@ static int _do_report(struct cmd_context *cmd, struct report_args *args, struct 
 	if (lock_global)
 		unlock_vg(cmd, VG_GLOBAL);
 out:
-	if (handle)
-		destroy_processing_handle(cmd, handle);
-	if (report_handle)
+	if (report_handle) {
+		if (report_in_group && !dm_report_group_pop(handle->report_group))
+			stack;
 		dm_report_free(report_handle);
+	}
+
+	handle->custom_handle = orig_custom_handle;
 	return r;
 }
+
+static int _full_report_single(struct cmd_context *cmd,
+			       const char *vg_name,
+			       struct volume_group *vg,
+			       struct processing_handle *handle)
+{
+	struct report_args *args = (struct report_args *) handle->custom_handle;
+	int orphan = is_orphan_vg(vg->name);
+	int r = ECMD_FAILED;
+
+	if (orphan && !dm_list_size(&vg->pvs))
+		return ECMD_PROCESSED;
+
+	args->full_report_vg = vg;
+
+	if (!dm_report_group_push(handle->report_group, NULL, NULL))
+		goto out;
+
+	if (orphan) {
+		if (((r = _do_report(cmd, handle, args, &args->single_args[REPORT_IDX_FULL_PVS])) != ECMD_PROCESSED) ||
+		    ((r = _do_report(cmd, handle, args, &args->single_args[REPORT_IDX_FULL_PVSEGS])) != ECMD_PROCESSED))
+			stack;
+	} else {
+		if (((r = _do_report(cmd, handle, args, &args->single_args[REPORT_IDX_FULL_VGS])) != ECMD_PROCESSED) ||
+		    ((r = _do_report(cmd, handle, args, &args->single_args[REPORT_IDX_FULL_PVS])) != ECMD_PROCESSED) ||
+		    ((r = _do_report(cmd, handle, args, &args->single_args[REPORT_IDX_FULL_LVS])) != ECMD_PROCESSED) ||
+		    ((r = _do_report(cmd, handle, args, &args->single_args[REPORT_IDX_FULL_PVSEGS])) != ECMD_PROCESSED) ||
+		    ((r = _do_report(cmd, handle, args, &args->single_args[REPORT_IDX_FULL_SEGS])) != ECMD_PROCESSED))
+			stack;
+	}
+
+	if (!dm_report_group_pop(handle->report_group))
+		stack;
+out:
+	args->full_report_vg = NULL;
+	return r;
+}
+
+#define set_full_report_single(ptr,type,name) \
+	do { \
+		(ptr)->report_type = type; \
+		(ptr)->keys = find_config_tree_str(cmd, report_ ## name ## _sort_full_CFG, NULL); \
+		(ptr)->options = find_config_tree_str(cmd, report_ ## name ## _cols_full_CFG, NULL); \
+		if (!_get_report_prefix(type, (ptr)->report_prefix, sizeof((ptr)->report_prefix))) \
+			return_0; \
+	} while (0)
 
 static int _config_report(struct cmd_context *cmd, struct report_args *args, struct single_report_args *single_args)
 {
@@ -1033,6 +1117,13 @@ static int _config_report(struct cmd_context *cmd, struct report_args *args, str
 			else
 				single_args->options = find_config_tree_str(cmd, report_pvsegs_cols_verbose_CFG, NULL);
 			break;
+		case FULL:
+			set_full_report_single(&args->single_args[REPORT_IDX_FULL_VGS], VGS, vgs);
+			set_full_report_single(&args->single_args[REPORT_IDX_FULL_LVS], LVS, lvs);
+			set_full_report_single(&args->single_args[REPORT_IDX_FULL_PVS], PVS, pvs);
+			set_full_report_single(&args->single_args[REPORT_IDX_FULL_PVSEGS], PVSEGS, pvsegs);
+			set_full_report_single(&args->single_args[REPORT_IDX_FULL_SEGS], SEGS, segs);
+			break;
 		case CMDSTATUS:
 			single_args->keys = find_config_tree_str(cmd, report_status_sort_CFG, NULL);
 			single_args->options = find_config_tree_str(cmd, report_status_cols_CFG, NULL);
@@ -1042,7 +1133,8 @@ static int _config_report(struct cmd_context *cmd, struct report_args *args, str
 			return 0;
 	}
 
-	single_args->fields_to_compact = find_config_tree_str_allow_empty(cmd, report_compact_output_cols_CFG, NULL);
+	if (single_args->report_type != FULL)
+		single_args->fields_to_compact = find_config_tree_str_allow_empty(cmd, report_compact_output_cols_CFG, NULL);
 
 	/* If -o supplied use it, else use default for report_type */
 	if ((_get_report_options(cmd, args, single_args) != ECMD_PROCESSED))
@@ -1080,6 +1172,9 @@ static int _report(struct cmd_context *cmd, int argc, char **argv, report_type_t
 {
 	struct report_args args = {0};
 	struct single_report_args *single_args = &args.single_args[REPORT_IDX_SINGLE];
+	static char report_name[] = "report";
+	struct processing_handle *handle;
+	int r = ECMD_FAILED;
 
 	/*
 	 * Include foreign VGs that contain active LVs.
@@ -1096,7 +1191,27 @@ static int _report(struct cmd_context *cmd, int argc, char **argv, report_type_t
 	if (!_config_report(cmd, &args, single_args))
 		return_ECMD_FAILED;
 
-	return _do_report(cmd, &args, single_args);
+	if (!(handle = init_processing_handle(cmd, NULL)))
+		return_ECMD_FAILED;
+
+	handle->internal_report_for_select = 0;
+	handle->include_historical_lvs = cmd->include_historical_lvs;
+
+	if (!dm_report_group_push(handle->report_group, NULL, report_name)) {
+		log_error("Failed to add main report section to report group.");
+		destroy_processing_handle(cmd, handle);
+		return ECMD_FAILED;
+	}
+
+	if (single_args->report_type == FULL) {
+		handle->custom_handle = &args;
+		r = process_each_vg(cmd, argc, argv, NULL, NULL, 0, handle, &_full_report_single);
+	} else
+		r = _do_report(cmd, handle, &args, single_args);
+
+	dm_report_group_pop(handle->report_group);
+	destroy_processing_handle(cmd, handle);
+	return r;
 }
 
 int lvs(struct cmd_context *cmd, int argc, char **argv)
@@ -1126,6 +1241,11 @@ int pvs(struct cmd_context *cmd, int argc, char **argv)
 		type = LABEL;
 
 	return _report(cmd, argc, argv, type);
+}
+
+int fullreport(struct cmd_context *cmd, int argc, char **argv)
+{
+	return _report(cmd, argc, argv, FULL);
 }
 
 int devtypes(struct cmd_context *cmd, int argc, char **argv)
