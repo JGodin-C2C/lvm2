@@ -1427,7 +1427,7 @@ int devtypes(struct cmd_context *cmd, int argc, char **argv)
 #define REPORT_FORMAT_NAME_JSON "json"
 
 int report_format_init(struct cmd_context *cmd, struct dm_report_group **report_group,
-		       struct dm_report **status_rh)
+		       struct dm_report **status_rh, log_report_t *saved_log_report_state)
 {
 	static char status_report_name[] = "status";
 	struct report_args args = {0};
@@ -1485,6 +1485,11 @@ int report_format_init(struct cmd_context *cmd, struct dm_report_group **report_
 	*report_group = new_report_group;
 	if (tmp_status_rh)
 		*status_rh = tmp_status_rh;
+
+	if (saved_log_report_state) {
+		*saved_log_report_state = log_get_report_state();
+		log_set_report(*status_rh);
+	}
 	return 1;
 bad:
 	if (!dm_report_group_destroy(new_report_group))

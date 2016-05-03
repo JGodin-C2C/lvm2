@@ -75,6 +75,7 @@ struct processing_handle {
 	struct selection_handle *selection_handle;
 	struct dm_report_group *report_group;
 	struct dm_report *status_rh;
+	log_report_t saved_log_report_state;
 	void *custom_handle;
 };
 
