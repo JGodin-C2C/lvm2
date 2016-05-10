@@ -877,6 +877,9 @@ static int _do_report(struct cmd_context *cmd, struct report_args *args)
 				r = process_each_vg(cmd, args->argc, args->argv, NULL, NULL,
 						    0, handle, &_pvsegs_in_vg);
 			break;
+		case CMDSTATUS:
+			/* Status is reported throughout the code via report_cmdstatus calls. */
+			break;
 		default:
 			log_error(INTERNAL_ERROR "_do_report: unknown report type.");
 			return 0;
@@ -958,6 +961,10 @@ static int _config_report(struct cmd_context *cmd, struct report_args *args)
 				args->options = find_config_tree_str(cmd, report_pvsegs_cols_CFG, NULL);
 			else
 				args->options = find_config_tree_str(cmd, report_pvsegs_cols_verbose_CFG, NULL);
+			break;
+		case CMDSTATUS:
+			args->keys = find_config_tree_str(cmd, report_status_sort_CFG, NULL);
+			args->options = find_config_tree_str(cmd, report_status_cols_CFG, NULL);
 			break;
 		default:
 			log_error(INTERNAL_ERROR "_report: unknown report type.");

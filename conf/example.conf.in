@@ -1759,6 +1759,18 @@ activation {
 	# This configuration option has an automatic default value.
 	# time_format = "%Y-%m-%d %T %z"
 
+	# Configuration option report/status_sort.
+	# List of columns to sort by when reporting command status.
+	# See 'lvm status -o help' for the list of possible fields.
+	# This configuration option has an automatic default value.
+	# status_sort = "seq_num"
+
+	# Configuration option report/status_cols.
+	# List of columns to report when reporting command status.
+	# See 'lvm status -o help' for the list of possible fields.
+	# This configuration option has an automatic default value.
+	# status_cols = "seq_num,type,context,object_type,object_id,object_name,message,code"
+
 	# Configuration option report/devtypes_sort.
 	# List of columns to sort by when reporting 'lvm devtypes' command.
 	# See 'lvm devtypes -o help' for the list of possible fields.

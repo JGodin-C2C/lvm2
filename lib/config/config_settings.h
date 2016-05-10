@@ -1646,6 +1646,14 @@ cfg(report_time_format_CFG, "time_format", report_CFG_SECTION, CFG_PROFILABLE | 
 	"    A literal '%' character.\n"
 	"#\n")
 
+cfg(report_status_sort_CFG, "status_sort", report_CFG_SECTION, CFG_PROFILABLE | CFG_DEFAULT_COMMENTED, CFG_TYPE_STRING, DEFAULT_STATUS_SORT, vsn(2, 2, 155), NULL, 0, NULL,
+	"List of columns to sort by when reporting command status.\n"
+	"See 'lvm status -o help' for the list of possible fields.\n")
+
+cfg(report_status_cols_CFG, "status_cols", report_CFG_SECTION, CFG_PROFILABLE | CFG_DEFAULT_COMMENTED, CFG_TYPE_STRING, DEFAULT_STATUS_COLS, vsn(2, 2, 155), NULL, 0, NULL,
+	"List of columns to report when reporting command status.\n"
+	"See 'lvm status -o help' for the list of possible fields.\n")
+
 cfg(report_devtypes_sort_CFG, "devtypes_sort", report_CFG_SECTION, CFG_PROFILABLE | CFG_DEFAULT_COMMENTED, CFG_TYPE_STRING, DEFAULT_DEVTYPES_SORT, vsn(2, 2, 101), NULL, 0, NULL,
 	"List of columns to sort by when reporting 'lvm devtypes' command.\n"
 	"See 'lvm devtypes -o help' for the list of possible fields.\n")

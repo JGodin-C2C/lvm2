@@ -3622,6 +3622,16 @@ static void *_obj_get_devtypes(void *obj)
 	return obj;
 }
 
+static void *_obj_get_cmdstatus(void *obj)
+{
+	return obj;
+}
+
+static const struct dm_report_object_type _status_report_types[] = {
+	{ CMDSTATUS, "Command Status", "status_", _obj_get_cmdstatus },
+	{ 0, "", "", NULL },
+};
+
 static const struct dm_report_object_type _report_types[] = {
 	{ VGS, "Volume Group", "vg_", _obj_get_vg },
 	{ LVS, "Logical Volume", "lv_", _obj_get_lv },
@@ -3665,6 +3675,8 @@ typedef struct label type_label;
 
 typedef dev_known_type_t type_devtype;
 
+typedef struct cmd_status type_cmd_status;
+
 static const struct dm_report_field_type _fields[] = {
 #include "columns.h"
 {0, 0, 0, 0, "", "", NULL, NULL},
@@ -3672,6 +3684,11 @@ static const struct dm_report_field_type _fields[] = {
 
 static const struct dm_report_field_type _devtypes_fields[] = {
 #include "columns-devtypes.h"
+{0, 0, 0, 0, "", "", NULL, NULL},
+};
+
+static const struct dm_report_field_type _status_fields[] = {
+#include "columns-cmdstatus.h"
 {0, 0, 0, 0, "", "", NULL, NULL},
 };
 
@@ -3712,7 +3729,11 @@ void *report_init(struct cmd_context *cmd, const char *format, const char *keys,
 	if (columns_as_rows)
 		report_flags |= DM_REPORT_OUTPUT_COLUMNS_AS_ROWS;
 
-	if (*report_type & DEVTYPES) {
+	if (*report_type & CMDSTATUS) {
+		types = _status_report_types;
+		fields = _status_fields;
+		reserved_values = NULL;
+	} else if (*report_type & DEVTYPES) {
 		types = _devtypes_report_types;
 		fields = _devtypes_fields;
 		reserved_values = NULL;
@@ -3748,8 +3769,12 @@ const char *report_get_field_prefix(report_type_t report_type_id)
 {
 	const struct dm_report_object_type *report_types, *report_type;
 
-	report_types = report_type_id & DEVTYPES ? _devtypes_report_types
-						 : _report_types;
+	if (report_type_id & CMDSTATUS)
+		report_types = _status_report_types;
+	else if (report_type_id & DEVTYPES)
+		report_types = _devtypes_report_types;
+	else
+		report_types = _report_types;
 
 	for (report_type = report_types; report_type->id; report_type++) {
 		if (report_type_id & report_type->id)
@@ -3822,6 +3847,22 @@ int report_devtypes(void *handle)
 	while (_dev_known_types[devtypeind].name[0])
 		if (!_report_devtype_single(handle, &_dev_known_types[devtypeind++]))
 			return 0;
+
+	return 1;
+}
+
+int report_cmdstatus(void *handle, const char *type, const char *context,
+		     const char *object_type_name, const char *object_id,
+		     const char *object_name, const char *msg, int code)
+{
+	static uint32_t seq_num = 1;
+
+	struct cmd_status cmd_status = {seq_num++, type, context, object_type_name,
+					object_id ? : "", object_name ? : "",
+					msg ? : "", code};
+
+	if (handle)
+		return dm_report_object(handle, &cmd_status);
 
 	return 1;
 }
