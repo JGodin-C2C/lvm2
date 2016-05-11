@@ -904,7 +904,7 @@ int init_clvm(struct dm_hash_table *excl_uuid)
 	if (!udev_init_library_context())
 		stack;
 
-	if (!(cmd = create_toolcontext(1, NULL, 0, 1, 1, 1))) {
+	if (!(cmd = create_toolcontext(1, NULL, 0, 1, 1, 1, 0))) {
 		log_error("Failed to allocate command context");
 		udev_fin_library_context();
 		return 0;

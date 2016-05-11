@@ -1727,6 +1727,11 @@ static int _init_lvmetad(struct cmd_context *cmd)
 		return 1;
 	}
 
+	if (cmd->is_lvm2app) {
+		cmd->lvm2app_needs_connect = 1;
+		return 1;
+	}
+
 	if (!lvmetad_connect(cmd)) {
 		log_warn("WARNING: Failed to connect to lvmetad. Falling back to device scanning.");
 		return 1;
@@ -1758,7 +1763,6 @@ static int _init_lvmpolld(struct cmd_context *cmd)
 
 int init_connections(struct cmd_context *cmd)
 {
-
 	if (!_init_lvmetad(cmd)) {
 		log_error("Failed to initialize lvmetad connection.");
 		goto bad;
@@ -1782,7 +1786,8 @@ struct cmd_context *create_toolcontext(unsigned is_long_lived,
 				       unsigned set_buffering,
 				       unsigned threaded,
 				       unsigned set_connections,
-				       unsigned set_filters)
+				       unsigned set_filters,
+				       unsigned is_lvm2app)
 {
 	struct cmd_context *cmd;
 	FILE *new_stream;
@@ -1805,6 +1810,7 @@ struct cmd_context *create_toolcontext(unsigned is_long_lived,
 		log_error("Failed to allocate command context");
 		return NULL;
 	}
+	cmd->is_lvm2app = is_lvm2app;
 	cmd->is_long_lived = is_long_lived;
 	cmd->threaded = threaded ? 1 : 0;
 	cmd->handles_missing_pvs = 0;

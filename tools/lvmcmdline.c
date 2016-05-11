@@ -1947,8 +1947,7 @@ struct cmd_context *init_lvm(unsigned set_connections, unsigned set_filters)
 	 */
 	dm_set_name_mangling_mode(DM_STRING_MANGLING_NONE);
 
-	if (!(cmd = create_toolcontext(0, NULL, 1, 0,
-			set_connections, set_filters))) {
+	if (!(cmd = create_toolcontext(0, NULL, 1, 0, set_connections, set_filters, 0))) {
 		udev_fin_library_context();
 		return_NULL;
 	}

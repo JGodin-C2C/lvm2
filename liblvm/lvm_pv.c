@@ -123,6 +123,8 @@ int lvm_pv_remove(lvm_t libh, const char *pv_name)
 
 	dm_list_init(&pv_names);
 
+	lvm_init_to_use(libh);
+
 	if (!str_list_add(cmd->mem, &pv_names, pv_name))
 		rc = -1;
 
@@ -173,6 +175,7 @@ struct dm_list *lvm_list_pvs(lvm_t libh)
 {
 	struct dm_list *rc;
 	struct saved_env e = store_user_env((struct cmd_context *)libh);
+	lvm_init_to_use(libh);
 	rc = _lvm_list_pvs(libh);
 	restore_user_env(&e);
 	return rc;
@@ -374,6 +377,7 @@ pv_create_params_t lvm_pv_params_create(lvm_t libh, const char *pv_name)
 {
 	pv_create_params_t rc;
 	struct saved_env e = store_user_env((struct cmd_context *)libh);
+	lvm_init_to_use(libh);
 	rc = _lvm_pv_params_create(libh, pv_name, NULL);
 	restore_user_env(&e);
 	return rc;
@@ -420,6 +424,8 @@ static int _pv_create(pv_create_params_t params)
 {
 	struct cmd_context *cmd = (struct cmd_context *)params->libh;
 	int rc = 0;
+
+	lvm_init_to_use(params->libh);
 
 	if (params->pv_p.pva.size) {
 		if (params->pv_p.pva.size % SECTOR_SIZE) {

@@ -19,6 +19,7 @@
 #include "metadata-exported.h"
 #include "lvm2app.h"
 #include "lvm_misc.h"
+#include "lvmetad.h"
 
 const char *lvm_library_get_version(void)
 {
@@ -45,7 +46,7 @@ static lvm_t _lvm_init(const char *system_dir)
 	/* create context */
 	/* FIXME: split create_toolcontext */
 	/* FIXME: make all globals configurable */
-	cmd = create_toolcontext(0, system_dir, 0, 0, 1, 1);
+	cmd = create_toolcontext(0, system_dir, 0, 0, 1, 1, 1);
 	if (!cmd)
 		return NULL;
 
@@ -80,6 +81,20 @@ static lvm_t _lvm_init(const char *system_dir)
 	return (lvm_t) cmd;
 }
 
+void lvm_init_to_use(lvm_t libh)
+{
+	struct cmd_context *cmd = (struct cmd_context *)libh;
+
+	if (cmd->lvm2app_init_done)
+		return;
+	cmd->lvm2app_init_done = 1;
+
+	/* If _init_lvmetad() skipped lvmetad_connect, it set lvm2app_needs_connect. */
+	if (!cmd->lvm2app_needs_connect)
+		return;
+	cmd->lvm2app_needs_connect = 0;
+	lvmetad_connect(cmd);
+}
 
 lvm_t lvm_init(const char *system_dir)
 {
@@ -170,6 +185,7 @@ const char *lvm_vgname_from_pvid(lvm_t libh, const char *pvid)
 	struct saved_env e = store_user_env((struct cmd_context *)libh);
 
 	if (id_read_format(&id, pvid)) {
+		lvm_init_to_use(libh);
 		rc = find_vgname_from_pvid(cmd, (char *)id.uuid);
 	} else {
 		log_error(INTERNAL_ERROR "Unable to convert uuid");
@@ -184,6 +200,7 @@ const char *lvm_vgname_from_device(lvm_t libh, const char *device)
 	const char *rc = NULL;
 	struct cmd_context *cmd = (struct cmd_context *)libh;
 	struct saved_env e = store_user_env(cmd);
+	lvm_init_to_use(libh);
 	rc = find_vgname_from_pvname(cmd, device);
 	restore_user_env(&e);
 	return rc;
