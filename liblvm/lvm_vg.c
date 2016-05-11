@@ -54,6 +54,8 @@ vg_t lvm_vg_create(lvm_t libh, const char *vg_name)
 	struct volume_group *vg = NULL;
 	struct saved_env e = store_user_env((struct cmd_context *)libh);
 
+	lvm_init_to_use(libh);
+
 	vg = vg_lock_and_create((struct cmd_context *)libh, vg_name);
 	/* FIXME: error handling is still TBD */
 	if (vg_read_error(vg)) {
@@ -235,6 +237,9 @@ vg_t lvm_vg_open(lvm_t libh, const char *vgname, const char *mode,
 {
 	vg_t rc;
 	struct saved_env e = store_user_env((struct cmd_context*)libh);
+
+	lvm_init_to_use(libh);
+
 	rc = _lvm_vg_open(libh, vgname, mode, flags);
 	restore_user_env(&e);
 	return rc;
@@ -484,6 +489,8 @@ struct dm_list *lvm_list_vg_names(lvm_t libh)
 	struct dm_list *rc = NULL;
 	struct saved_env e = store_user_env((struct cmd_context *)libh);
 
+	lvm_init_to_use(libh);
+
 	if (lvmetad_vg_list_to_lvmcache((struct cmd_context *)libh)) {
 		rc = get_vgnames((struct cmd_context *)libh, 0);
 	}
@@ -496,6 +503,7 @@ struct dm_list *lvm_list_vg_uuids(lvm_t libh)
 	struct dm_list *rc = NULL;
 	struct saved_env e = store_user_env((struct cmd_context *)libh);
 
+	lvm_init_to_use(libh);
 	if (lvmetad_vg_list_to_lvmcache((struct cmd_context *)libh)) {
 		rc = get_vgids((struct cmd_context *)libh, 0);
 	}
@@ -510,6 +518,8 @@ int lvm_scan(lvm_t libh)
 {
 	int rc = 0;
 	struct saved_env e = store_user_env((struct cmd_context *)libh);
+
+	lvm_init_to_use(libh);
 
 	lvmcache_force_next_label_scan();
 	if (!lvmcache_label_scan((struct cmd_context *)libh))
@@ -551,6 +561,8 @@ int lvm_vg_name_validate(lvm_t libh, const char *name)
 	int rc = -1;
 	struct cmd_context *cmd = (struct cmd_context *)libh;
 	struct saved_env e = store_user_env(cmd);
+
+	lvm_init_to_use(libh);
 
 	if (validate_new_vg_name(cmd, name))
 		rc = 0;

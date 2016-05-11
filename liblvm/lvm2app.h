@@ -262,6 +262,11 @@ typedef struct lvm_property_value {
 lvm_t lvm_init(const char *system_dir);
 
 /**
+ * Create connections.
+ */
+void lvm_init_to_use(lvm_t libh);
+
+/**
  * Destroy a LVM handle allocated with lvm_init().
  *
  * \memberof lvm_t

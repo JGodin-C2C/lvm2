@@ -489,6 +489,8 @@ static int handle_connect(daemon_state s)
 	client_handle client = { .thread_id = 0 };
 	socklen_t sl = sizeof(sockaddr);
 
+	DEBUGLOG(&s, "handle connect");
+
 	client.socket_fd = accept(s.socket_fd, (struct sockaddr *) &sockaddr, &sl);
 	if (client.socket_fd < 0)
 		return 0;

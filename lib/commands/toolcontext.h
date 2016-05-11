@@ -144,6 +144,9 @@ struct cmd_context {
 	unsigned vg_notify:1;
 	unsigned lv_notify:1;
 	unsigned pv_notify:1;
+	unsigned is_lvm2app:1;
+	unsigned lvm2app_init_done:1;
+	unsigned lvm2app_needs_connect:1;
 
 	/*
 	 * Filtering.
@@ -208,7 +211,8 @@ struct cmd_context *create_toolcontext(unsigned is_long_lived,
 				       unsigned set_buffering,
 				       unsigned threaded,
 				       unsigned set_connections,
-				       unsigned set_filters);
+				       unsigned set_filters,
+				       unsigned is_lvm2app);
 void destroy_toolcontext(struct cmd_context *cmd);
 int refresh_toolcontext(struct cmd_context *cmd);
 int refresh_filters(struct cmd_context *cmd);
