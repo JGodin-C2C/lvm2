@@ -93,6 +93,9 @@ static PyObject *_LibLVMError;
 
 #define LVM_VALID(ptr) \
 	do { \
+		if (!_libh) { \
+			_libh = lvm_init(NULL); \
+		} \
 		if (ptr && _libh) { \
 			if (ptr != _libh) { \
 				PyErr_SetString(PyExc_UnboundLocalError, "LVM handle reference stale"); \
@@ -2047,7 +2050,9 @@ PyMODINIT_FUNC initlvm(void)
 {
 	PyObject *m;
 
+	/*
 	_libh = lvm_init(NULL);
+	*/
 
 	if (PyType_Ready(&_LibLVMvgType) < 0)
 		MODINITERROR;
