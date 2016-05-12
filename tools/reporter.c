@@ -1045,7 +1045,7 @@ static int _do_report(struct cmd_context *cmd, struct processing_handle *handle,
 	if (!(report_handle = report_init(cmd, single_args->options, single_args->keys, &report_type,
 					  args->separator, args->aligned, args->buffered,
 					  args->headings, args->field_prefixes, args->quoted,
-					  args->columns_as_rows, single_args->selection)))
+					  args->columns_as_rows, single_args->selection, 0)))
 		goto_out;
 
 	handle->custom_handle = report_handle;
@@ -1471,7 +1471,7 @@ int report_format_init(struct cmd_context *cmd, struct dm_report_group **report_
 		if (!(tmp_status_rh = report_init(NULL, single_args->options, single_args->keys, &single_args->report_type,
 						  args.separator, args.aligned, args.buffered, args.headings,
 						  args.field_prefixes, args.quoted, args.columns_as_rows,
-						  single_args->selection))) {
+						  single_args->selection, 1))) {
 			log_error("Failed to create status report.");
 			goto bad;
 		}
