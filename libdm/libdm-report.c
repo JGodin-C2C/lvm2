@@ -1913,7 +1913,6 @@ static int _do_report_object(struct dm_report *rh, void *object, int do_output, 
 	struct row *row = NULL;
 	struct dm_report_field *field;
 	void *data = NULL;
-	int len;
 	int r = 0;
 
 	if (!rh) {
@@ -2020,17 +2019,6 @@ static int _do_report_object(struct dm_report *rh, void *object, int do_output, 
 		goto out;
 
 	dm_list_add(&rh->rows, &row->list);
-
-	dm_list_iterate_items(field, &row->fields) {
-		len = (int) strlen(field->report_string);
-		if ((len > field->props->width))
-			field->props->width = len;
-
-		if ((rh->flags & RH_SORT_REQUIRED) &&
-		    (field->props->flags & FLD_SORT_KEY)) {
-			(*row->sort_fields)[field->props->sort_posn] = field;
-		}
-	}
 
 	if (!(rh->flags & DM_REPORT_OUTPUT_BUFFERED))
 		return dm_report_output(rh);
@@ -4607,6 +4595,9 @@ static int _prepare_json_report_output(struct dm_report *rh)
 
 int dm_report_output(struct dm_report *rh)
 {
+	struct row *row;
+	struct dm_report_field *field;
+	int len;
 	int r;
 
 	if (_is_json_report(rh) &&
@@ -4616,6 +4607,19 @@ int dm_report_output(struct dm_report *rh)
 	if (dm_list_empty(&rh->rows)) {
 		r = 1;
 		goto out;
+	}
+
+	dm_list_iterate_items(row, &rh->rows) {
+		dm_list_iterate_items(field, &row->fields) {
+			len = (int) strlen(field->report_string);
+			if ((len > field->props->width))
+				field->props->width = len;
+
+			if ((rh->flags & RH_SORT_REQUIRED) &&
+			    (field->props->flags & FLD_SORT_KEY)) {
+				(*row->sort_fields)[field->props->sort_posn] = field;
+			}
+		}
 	}
 
 	if ((rh->flags & RH_SORT_REQUIRED))
