@@ -269,7 +269,7 @@ void reset_log_duplicated(void) {
 	}
 }
 
-static const char *_get_log_level_name(int level)
+static const char *_get_log_level_name(int use_stderr, int level)
 {
 	static const char *log_level_names[] = {"",      /* unassigned */
 						"",      /* unassigned */
@@ -280,7 +280,9 @@ static const char *_get_log_level_name(int level)
 						"info",  /* _LOG_INFO */
 						"debug"  /* _LOG_DEBUG */
 						};
-	level &= ~_LOG_STDERR;
+	if (level == _LOG_WARN && !use_stderr)
+		return "print";
+
 	return log_level_names[level];
 }
 
@@ -311,6 +313,7 @@ void print_log(int level, const char *file, int line, int dm_errno_or_class,
 	char *newbuf;
 	int use_stderr = level & _LOG_STDERR;
 	int log_once = level & _LOG_ONCE;
+	int log_direct = level & _LOG_DIRECT;
 	int fatal_internal_error = 0;
 	size_t msglen;
 	const char *indent_spaces = "";
@@ -321,7 +324,7 @@ void print_log(int level, const char *file, int line, int dm_errno_or_class,
 	struct dm_report *orig_report;
 	int logged_via_report = 0;
 
-	level &= ~(_LOG_STDERR|_LOG_ONCE);
+	level &= ~(_LOG_STDERR|_LOG_ONCE|_LOG_DIRECT);
 
 	if (_abort_on_internal_errors_env_present < 0) {
 		if ((env_str = getenv("DM_ABORT_ON_INTERNAL_ERRORS"))) {
@@ -352,7 +355,7 @@ void print_log(int level, const char *file, int line, int dm_errno_or_class,
 
 	if (_lvm2_log_fn ||
 	    (_store_errmsg && (level <= _LOG_ERR)) ||
-	    (_log_report.report && (use_stderr || (level <=_LOG_ERR))) ||
+	    (_log_report.report && !log_direct && (use_stderr || (level <=_LOG_WARN))) ||
 	    log_once) {
 		va_start(ap, format);
 		n = vsnprintf(message, sizeof(message), trformat, ap);
@@ -400,11 +403,10 @@ void print_log(int level, const char *file, int line, int dm_errno_or_class,
 		}
 	}
 
-	if (_log_report.report && (use_stderr || (level <= _LOG_ERR))) {
+	if (_log_report.report && !log_direct && (use_stderr || (level <= _LOG_WARN))) {
 		orig_report = _log_report.report;
 		_log_report.report = NULL;
-
-		if (!report_cmdstatus(orig_report, _get_log_level_name(level),
+		if (!report_cmdstatus(orig_report, _get_log_level_name(use_stderr, level),
 				      log_get_report_context_name(_log_report.context),
 				      log_get_report_object_type_name(_log_report.object_type),
 				      _log_report.object_id, _log_report.object_name, message, 0))
