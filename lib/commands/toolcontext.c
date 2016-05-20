@@ -2245,6 +2245,9 @@ void destroy_toolcontext(struct cmd_context *cmd)
 	if (cmd->cft_def_hash)
 		dm_hash_destroy(cmd->cft_def_hash);
 
+	if (cmd->status_rh)
+		dm_report_free(cmd->status_rh);
+
 	if (cmd->libmem)
 		dm_pool_destroy(cmd->libmem);
 

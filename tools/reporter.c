@@ -1498,3 +1498,38 @@ bad:
 		dm_report_free(tmp_status_rh);
 	return 0;
 }
+
+int status(struct cmd_context *cmd, int argc, char **argv)
+{
+	static report_idx_t expected_idxs[] = {REPORT_IDX_SINGLE, REPORT_IDX_STATUS, REPORT_IDX_NULL};
+	struct dm_report_group *report_group = NULL;
+	const char *selection = NULL;
+	int r = ECMD_FAILED;
+
+	if (!cmd->status_rh) {
+		log_error("No status report stored.");
+		goto out;
+	}
+
+	if (!report_format_init(cmd, &report_group, &cmd->status_rh, NULL))
+		goto_out;
+
+	if (arg_count(cmd, select_ARG) &&
+	    !_do_report_get_selection(cmd, NULL, NULL, expected_idxs, &selection))
+		goto_out;
+
+	if (!dm_report_set_selection(cmd->status_rh, selection)) {
+		log_error("Failed to set selection for status report.");
+		goto out;
+	}
+
+	if (!dm_report_output(cmd->status_rh) ||
+	    !dm_report_group_pop(report_group))
+		goto_out;
+
+	r = ECMD_PROCESSED;
+out:
+	if (!dm_report_group_destroy(report_group))
+		stack;
+	return r;
+}

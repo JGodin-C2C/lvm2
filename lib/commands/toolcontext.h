@@ -198,6 +198,7 @@ struct cmd_context {
 	const char *report_list_item_separator;
 	const char *time_format;
 	unsigned rand_seed;
+	struct dm_report *status_rh;		/* keep status report of last cmd for further queries if cmd line is interactive (e.g. lvm shell) */
 };
 
 /*

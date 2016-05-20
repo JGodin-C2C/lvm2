@@ -1057,6 +1057,15 @@ xx(segtypes,
    PERMITTED_READ_ONLY | NO_METADATA_PROCESSING,
    "segtypes\n")
 
+xx(status,
+   "Display status of last command",
+   PERMITTED_READ_ONLY | NO_METADATA_PROCESSING,
+   "status\n"
+   "\t[--reportformat {json}]\n"
+   "\t[-S|--select Selection]\n",
+
+   reportformat_ARG, select_ARG)
+
 xx(systemid,
    "Display the system ID, if any, currently set on this host",
    PERMITTED_READ_ONLY | NO_METADATA_PROCESSING,
