@@ -4205,6 +4205,12 @@ static int _sort_rows(struct dm_report *rh)
 
 #define UNABLE_TO_EXTEND_OUTPUT_LINE_MSG "dm_report: Unable to extend output line"
 
+static int _is_native_report(struct dm_report *rh)
+{
+	return rh->group_item &&
+	       (rh->group_item->group->type == DM_REPORT_GROUP_EXTENDED);
+}
+
 /*
  * Produce report output
  */
@@ -4475,6 +4481,12 @@ int dm_report_output(struct dm_report *rh)
 	if ((rh->flags & RH_SORT_REQUIRED))
 		_sort_rows(rh);
 
+	if (_is_native_report(rh)) {
+		if (rh->group_item->parent->store.finished_count > 0)
+			log_print("");
+		log_print("Report: %s", (const char *) rh->group_item->data);
+	}
+
 	if ((rh->flags & DM_REPORT_OUTPUT_COLUMNS_AS_ROWS))
 		r = _output_as_rows(rh);
 	else
@@ -4483,6 +4495,11 @@ out:
 	if (r && rh && rh->group_item)
 		rh->group_item->output_done = 1;
 	return r;
+}
+
+static int _report_group_create_native(struct dm_report_group *group)
+{
+	return 1;
 }
 
 struct dm_report_group *dm_report_group_create(dm_report_group_type_t type, void *data)
@@ -4513,6 +4530,10 @@ struct dm_report_group *dm_report_group_create(dm_report_group_type_t type, void
 	dm_list_add_h(&group->items, &item->list);
 
 	switch (type) {
+		case DM_REPORT_GROUP_EXTENDED:
+			if (!_report_group_create_native(group))
+				goto_bad;
+			break;
 		default:
 			goto_bad;
 	}
@@ -4521,6 +4542,11 @@ struct dm_report_group *dm_report_group_create(dm_report_group_type_t type, void
 bad:
 	dm_pool_destroy(mem);
 	return NULL;
+}
+
+static int _report_group_push_native(struct report_group_item *item, const char *name)
+{
+	return 1;
 }
 
 int dm_report_group_push(struct dm_report_group *group, struct dm_report *report, void *data)
@@ -4552,6 +4578,10 @@ int dm_report_group_push(struct dm_report_group *group, struct dm_report *report
 	dm_list_add_h(&group->items, &item->list);
 
 	switch (group->type) {
+		case DM_REPORT_GROUP_EXTENDED:
+			if (!_report_group_push_native(item, data))
+				goto_bad;
+			break;
 		default:
 			goto_bad;
 	}
@@ -4561,6 +4591,11 @@ bad:
 	dm_list_del(&item->list);
 	dm_pool_free(group->mem, item);
 	return 0;
+}
+
+static int _report_group_pop_native(struct report_group_item *item)
+{
+	return 1;
 }
 
 int dm_report_group_pop(struct dm_report_group *group)
@@ -4576,6 +4611,10 @@ int dm_report_group_pop(struct dm_report_group *group)
 	}
 
 	switch (group->type) {
+		case DM_REPORT_GROUP_EXTENDED:
+			if (!_report_group_pop_native(item))
+				return_0;
+			break;
 		default:
 			return 0;
         }
@@ -4591,6 +4630,11 @@ int dm_report_group_pop(struct dm_report_group *group)
 		item->parent->store.finished_count++;
 
 	dm_pool_free(group->mem, item);
+	return 1;
+}
+
+static int _report_group_destroy_native(void)
+{
 	return 1;
 }
 
@@ -4610,6 +4654,10 @@ int dm_report_group_destroy(struct dm_report_group *group)
 	}
 
 	switch (group->type) {
+		case DM_REPORT_GROUP_EXTENDED:
+			if (!_report_group_destroy_native())
+				goto_out;
+			break;
 		default:
 			goto_out;
         }
