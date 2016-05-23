@@ -105,6 +105,9 @@ int report_devtypes(void *handle);
 int report_cmdstatus(void *handle, const char *type, const char *context,
 		     const char *object_type_name, const char *object_id,
 		     const char *object_name, const char *msg, int32_t code);
+#define REPORT_OBJECT_STATUS_NAME "status"
+#define REPORT_OBJECT_STATUS_SUCCESS "success"
+#define REPORT_OBJECT_STATUS_FAILURE "failure"
 int report_current_object_cmdstatus(const char *type, const char *msg, int32_t code);
 int report_output(void *handle);
 
