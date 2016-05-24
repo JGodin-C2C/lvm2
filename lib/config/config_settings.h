@@ -1462,6 +1462,19 @@ cfg(disk_area_start_sector_CFG, "start_sector", disk_area_CFG_SUBSECTION, CFG_UN
 cfg(disk_area_size_CFG, "size", disk_area_CFG_SUBSECTION, CFG_UNSUPPORTED | CFG_DEFAULT_COMMENTED, CFG_TYPE_INT, 0, vsn(1, 0, 0), NULL, 0, NULL, NULL)
 cfg(disk_area_id_CFG, "id", disk_area_CFG_SUBSECTION, CFG_UNSUPPORTED | CFG_DEFAULT_UNDEFINED, CFG_TYPE_STRING, NULL, vsn(1, 0, 0), NULL, 0, NULL, NULL)
 
+cfg(report_output_format_CFG, "output_format", report_CFG_SECTION, CFG_PROFILABLE | CFG_DEFAULT_COMMENTED, CFG_TYPE_STRING, DEFAULT_REP_OUTPUT_FORMAT, vsn(2, 2, 155), NULL, 0, NULL,
+	"Format of LVM2 command report output.\n"
+	"Accepted values:\n"
+	"  native\n"
+	"    Original report output with interleaved basic status\n"
+	"    messages (like error and warning messages).\n"
+	"  extended\n"
+	"    Like native, but command status is more detailed, including\n"
+	"    per object status and the status is reported as complete\n"
+	"    separate report in addition to primary command report.\n"
+	"  json\n"
+	"    The same as extended, but output is in JSON format.\n")
+
 cfg(report_compact_output_CFG, "compact_output", report_CFG_SECTION, CFG_PROFILABLE | CFG_DEFAULT_COMMENTED, CFG_TYPE_BOOL, DEFAULT_REP_COMPACT_OUTPUT, vsn(2, 2, 115), NULL, 0, NULL,
 	"Do not print empty values for all report fields.\n"
 	"If enabled, all fields that don't have a value set for any of the\n"

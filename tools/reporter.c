@@ -1076,8 +1076,8 @@ int report_format_init(struct cmd_context *cmd, struct dm_report_group **report_
 	struct dm_report_group *new_report_group;
 	struct dm_report *tmp_status_rh = NULL;
 
-	if (!(format_str = arg_str_value(cmd, reportformat_ARG, NULL)))
-		return 1;
+	if (!(format_str = arg_str_value(cmd, reportformat_ARG, find_config_tree_str(cmd, report_output_format_CFG, NULL))))
+		return_0;
 
 	if (!strcmp(format_str, REPORT_FORMAT_NAME_NATIVE))
 		return 1;

@@ -1551,6 +1551,21 @@ activation {
 # This configuration section has an automatic default value.
 # report {
 
+	# Configuration option report/output_format.
+	# Format of LVM2 command report output.
+	# Accepted values:
+	#   native
+	#     Original report output with interleaved basic status
+	#     messages (like error and warning messages).
+	#   extended
+	#     Like native, but command status is more detailed, including
+	#     per object status and the status is reported as complete
+	#     separate report in addition to primary command report.
+	#   json
+	#     The same as extended, but output is in JSON format.
+	# This configuration option has an automatic default value.
+	# output_format = "native"
+
 	# Configuration option report/compact_output.
 	# Do not print empty values for all report fields.
 	# If enabled, all fields that don't have a value set for any of the
