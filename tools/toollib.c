@@ -2137,14 +2137,19 @@ int process_each_vg(struct cmd_context *cmd,
 	}
 
 	/*
+	 * If this were not called here, it would be called as a side effect
+	 * of something else later on.  But sometimes, e.g. lvm shell, that
+	 * side effect cannot be relied on, so make it explicit here.
+	 */
+	dev_cache_full_scan(cmd->full_filter);
+
+	/*
 	 * First rescan for available devices, then force the next
 	 * label scan to be done.  get_vgnameids() will scan labels
 	 * (when not using lvmetad).
 	 */
-	if (cmd->command->flags & REQUIRES_FULL_LABEL_SCAN) {
-		dev_cache_full_scan(cmd->full_filter);
+	if (cmd->command->flags & REQUIRES_FULL_LABEL_SCAN)
 		lvmcache_force_next_label_scan();
-	}
 
 	/*
 	 * A list of all VGs on the system is needed when:
@@ -2752,6 +2757,13 @@ int process_each_lv(struct cmd_context *cmd, int argc, char **argv, uint32_t rea
 		ret_max = ECMD_FAILED;
 		goto_out;
 	}
+
+	/*
+	 * If this were not called here, it would be called as a side effect
+	 * of something else later on.  But sometimes, e.g. lvm shell, that
+	 * side effect cannot be relied on, so make it explicit here.
+	 */
+	dev_cache_full_scan(cmd->full_filter);
 
 	/*
 	 * A list of all VGs on the system is needed when:
