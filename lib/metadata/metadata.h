@@ -512,4 +512,12 @@ struct id pv_vgid(const struct physical_volume *pv);
 uint64_t find_min_mda_size(struct dm_list *mdas);
 char *tags_format_and_copy(struct dm_pool *mem, const struct dm_list *tagsl);
 
+/* used by applib.c from metadata.c */
+struct pv_list *copy_pvl(struct dm_pool *pvmem, struct pv_list *pvl_from);
+int add_pv_to_vg(struct volume_group *vg, const char *pv_name, struct physical_volume *pv, int new_pv);
+int check_pv_dev_sizes(struct volume_group *vg);
+
+/* used by metadata.c from applib.c */
+int pvcreate_write(struct cmd_context *cmd, struct pv_to_write *pvw);
+
 #endif
