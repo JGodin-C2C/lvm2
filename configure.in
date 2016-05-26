@@ -1448,6 +1448,11 @@ test "$APPLIB" = yes \
   && LVM2APP_LIB=-llvm2app \
   || LVM2APP_LIB=
 
+if test "$APPLIB" = yes; then
+	AC_DEFINE([APPLIB_SUPPORT], 1, [Define to 1 to enable liblvm2app support.])
+fi
+
+
 ################################################################################
 dnl -- Enable cmdlib
 AC_MSG_CHECKING(whether to compile liblvm2cmd.so)

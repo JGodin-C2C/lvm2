@@ -691,6 +691,7 @@ out:
  * Decide whether it is "safe" to wipe the labels on this device.
  * 0 indicates we may not.
  */
+#ifdef APPLIB_SUPPORT
 static int pvremove_check(struct cmd_context *cmd, const char *name,
 			  unsigned force_count, unsigned prompt, struct dm_list *pvslist)
 {
@@ -774,7 +775,9 @@ bad:
 out:
 	return r;
 }
+#endif
 
+#ifdef APPLIB_SUPPORT
 int pvremove_single(struct cmd_context *cmd, const char *pv_name,
 		    void *handle __attribute__((unused)), unsigned force_count,
 	            unsigned prompt, struct dm_list *pvslist)
@@ -821,7 +824,9 @@ int pvremove_single(struct cmd_context *cmd, const char *pv_name,
 out:
 	return r;
 }
+#endif
 
+#ifdef APPLIB_SUPPORT
 int pvremove_many(struct cmd_context *cmd, struct dm_list *pv_names,
 		  unsigned force_count, unsigned prompt)
 {
@@ -862,3 +867,4 @@ out:
 
 	return ret;
 }
+#endif

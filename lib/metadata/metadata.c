@@ -712,6 +712,7 @@ static int _check_pv_dev_sizes(struct volume_group *vg)
  * - max_phys_block_size: largest physical block size found amongst PVs in a VG
  *
  */
+#ifdef APPLIB_SUPPORT
 static int vg_extend_single_pv(struct volume_group *vg, char *pv_name,
 			       struct pvcreate_params *pp,
 			       unsigned int *max_phys_block_size)
@@ -756,6 +757,7 @@ bad:
 	free_pv_fid(pv);
 	return 0;
 }
+#endif
 
 /*
  * FIXME: commands shifting to common code in toollib have left a large
@@ -786,6 +788,7 @@ bad:
  * - pp: parameters to pass to implicit pvcreate; if NULL, do not pvcreate
  *
  */
+#ifdef APPLIB_SUPPORT
 int vg_extend(struct volume_group *vg, int pv_count, const char *const *pv_names,
 	      struct pvcreate_params *pp)
 {
@@ -818,6 +821,7 @@ int vg_extend(struct volume_group *vg, int pv_count, const char *const *pv_names
 
 	return 1;
 }
+#endif
 
 int vg_extend_each_pv(struct volume_group *vg, struct pvcreate_params *pp)
 {
@@ -853,6 +857,7 @@ int vg_extend_each_pv(struct volume_group *vg, struct pvcreate_params *pp)
 	return 1;
 }
 
+#ifdef APPLIB_SUPPORT
 int vg_reduce(struct volume_group *vg, const char *pv_name)
 {
 	struct physical_volume *pv;
@@ -876,6 +881,7 @@ int vg_reduce(struct volume_group *vg, const char *pv_name)
 
 	return 0;
 }
+#endif
 
 int lv_change_tag(struct logical_volume *lv, const char *tag, int add_tag)
 {
@@ -1563,6 +1569,7 @@ void pvcreate_params_set_defaults(struct pvcreate_params *pp)
  * See if we may pvcreate on this device.
  * 0 indicates we may not.
  */
+#ifdef APPLIB_SUPPORT
 static int _pvcreate_check(struct cmd_context *cmd, const char *name,
 			   struct pvcreate_params *pp, int *wiped)
 {
@@ -1720,7 +1727,9 @@ out:
 	free_pv_fid(pv);
 	return r;
 }
+#endif
 
+#ifdef APPLIB_SUPPORT
 static int _pvcreate_write(struct cmd_context *cmd, struct pv_to_write *pvw)
 {
 	struct physical_volume *pv = pvw->pv;
@@ -1767,7 +1776,9 @@ static int _pvcreate_write(struct cmd_context *cmd, struct pv_to_write *pvw)
 
 	return 1;
 }
+#endif
 
+#ifdef APPLIB_SUPPORT
 static int _verify_pv_create_params(struct pvcreate_params *pp)
 {
 	/*
@@ -1790,7 +1801,7 @@ static int _verify_pv_create_params(struct pvcreate_params *pp)
 
 	return 1;
 }
-
+#endif
 
 /*
  * pvcreate_vol() - initialize a device with PV label and metadata area
@@ -1803,6 +1814,7 @@ static int _verify_pv_create_params(struct pvcreate_params *pp)
  * NULL: error
  * struct physical_volume * (non-NULL): handle to physical volume created
  */
+#ifdef APPLIB_SUPPORT
 struct physical_volume *pvcreate_vol(struct cmd_context *cmd, const char *pv_name,
 				     struct pvcreate_params *pp, int write_now)
 {
@@ -1890,6 +1902,7 @@ struct physical_volume *pvcreate_vol(struct cmd_context *cmd, const char *pv_nam
 bad:
 	return NULL;
 }
+#endif
 
 static struct physical_volume *_alloc_pv(struct dm_pool *mem, struct device *dev)
 {
@@ -2190,6 +2203,7 @@ struct physical_volume *find_pv(struct volume_group *vg, struct device *dev)
 }
 
 /* FIXME: liblvm todo - make into function that returns handle */
+#ifdef APPLIB_SUPPORT
 struct physical_volume *find_pv_by_name(struct cmd_context *cmd,
 					const char *pv_name,
 					int allow_orphan, int allow_unformatted)
@@ -2230,6 +2244,7 @@ bad:
 	free_pv_fid(pv);
 	return NULL;
 }
+#endif
 
 /* Find segment at a given logical extent in an LV */
 struct lv_segment *find_seg_by_le(const struct logical_volume *lv, uint32_t le)
@@ -3400,7 +3415,6 @@ static int _handle_historical_lvs(struct volume_group *vg)
 int vg_write(struct volume_group *vg)
 {
 	struct dm_list *mdah;
-	struct pv_to_write *pv_to_write, *pv_to_write_safe;
 	struct pv_list *pvl, *pvl_safe;
 	struct metadata_area *mda;
 	struct lv_list *lvl;
@@ -3480,11 +3494,15 @@ int vg_write(struct volume_group *vg)
 		dm_list_del(&pvl->list);
 	}
 
+#ifdef APPLIB_SUPPORT
+	struct pv_to_write *pv_to_write, *pv_to_write_safe;
+
         dm_list_iterate_items_safe(pv_to_write, pv_to_write_safe, &vg->pvs_to_write) {
 		if (!_pvcreate_write(vg->cmd, pv_to_write))
 			return_0;
 		dm_list_del(&pv_to_write->list);
 	}
+#endif
 
 	/* Write to each copy of the metadata area */
 	dm_list_iterate_items(mda, &vg->fid->metadata_areas_in_use) {
@@ -4908,6 +4926,7 @@ out:
 	return NULL;
 }
 
+#ifdef APPLIB_SUPPORT
 const char *find_vgname_from_pvid(struct cmd_context *cmd,
 				  const char *pvid)
 {
@@ -4942,8 +4961,9 @@ const char *find_vgname_from_pvid(struct cmd_context *cmd,
 	}
 	return vgname;
 }
+#endif
 
-
+#ifdef APPLIB_SUPPORT
 const char *find_vgname_from_pvname(struct cmd_context *cmd,
 				    const char *pvname)
 {
@@ -4956,6 +4976,7 @@ const char *find_vgname_from_pvname(struct cmd_context *cmd,
 
 	return find_vgname_from_pvid(cmd, pvid);
 }
+#endif
 
 /* FIXME Use label functions instead of PV functions */
 static struct physical_volume *_pv_read(struct cmd_context *cmd,
@@ -5099,6 +5120,7 @@ int get_vgnameids(struct cmd_context *cmd, struct dm_list *vgnameids,
 	return 1;
 }
 
+#ifdef APPLIB_SUPPORT
 static int _get_pvs(struct cmd_context *cmd, uint32_t warn_flags,
 		struct dm_list *pvslist, struct dm_list *vgslist)
 {
@@ -5204,6 +5226,7 @@ static int _get_pvs(struct cmd_context *cmd, uint32_t warn_flags,
 
 	return 1;
 }
+#endif
 
 /*
  * Retrieve a list of all physical volumes.
@@ -5215,6 +5238,7 @@ static int _get_pvs(struct cmd_context *cmd, uint32_t warn_flags,
  * @returns NULL on errors, else pvslist which will equal passed-in value if
  * supplied.
  */
+#ifdef APPLIB_SUPPORT
 struct dm_list *get_pvs_internal(struct cmd_context *cmd,
 				 struct dm_list *pvslist,
 				 struct dm_list *vgslist)
@@ -5237,11 +5261,14 @@ struct dm_list *get_pvs_internal(struct cmd_context *cmd,
 	}
 	return results;
 }
+#endif
 
+#ifdef APPLIB_SUPPORT
 int scan_vgs_for_pvs(struct cmd_context *cmd, uint32_t warn_flags)
 {
 	return _get_pvs(cmd, warn_flags, NULL, NULL);
 }
+#endif
 
 int pv_write(struct cmd_context *cmd,
 	     struct physical_volume *pv, int allow_non_orphan)
