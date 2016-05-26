@@ -720,6 +720,62 @@ static void _del_option_from_list(struct dm_list *sll, const char *prefix,
 	}
 }
 
+static report_idx_t _get_report_idx_from_name(const char *name, size_t len)
+{
+	report_idx_t idx = REPORT_IDX_NULL;
+
+	if (!strncasecmp(name, "status", len))
+		idx = REPORT_IDX_STATUS;
+	else if (!strncasecmp(name, "vg", len))
+		idx = REPORT_IDX_FULL_VGS;
+	else if (!strncasecmp(name, "pv", len))
+		idx = REPORT_IDX_FULL_PVS;
+	else if (!strncasecmp(name, "lv", len))
+		idx = REPORT_IDX_FULL_LVS;
+	else if (!strncasecmp(name, "pvseg", len))
+		idx = REPORT_IDX_FULL_PVSEGS;
+	else if (!strncasecmp(name, "seg", len))
+		idx = REPORT_IDX_FULL_SEGS;
+	else
+		log_error("Unknonwn report specifier in "
+			  "report option list: %s.", name);
+
+	return idx;
+}
+
+static const char *_get_report_idx(const char *opts, report_idx_t *idx)
+{
+	char *p;
+
+	if (*opts != '/') {
+		*idx = REPORT_IDX_SINGLE;
+		return opts;
+	}
+
+	opts++;
+	if (!(p = strchr(opts, '/'))) {
+		log_error("Unfinished report specifier in "
+			  "report options list: %s.", opts);
+		*idx = -1;
+		return NULL;
+	}
+
+	if ((*idx = _get_report_idx_from_name(opts, p - opts)) == -1)
+		return_NULL;
+
+	return p + 1;
+}
+
+static int _should_process_report_idx(report_type_t report_type, report_idx_t idx)
+{
+	if (((idx == REPORT_IDX_STATUS) && (report_type != CMDSTATUS)) ||
+	    ((idx == REPORT_IDX_SINGLE) && ((report_type == FULL) || (report_type == CMDSTATUS))) ||
+	    ((idx > REPORT_IDX_STATUS) && report_type != FULL))
+		return 0;
+
+	return 1;
+}
+
 static int _get_report_options(struct cmd_context *cmd,
 			       struct report_args *args,
 			       struct single_report_args *single_args)
