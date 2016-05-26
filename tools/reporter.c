@@ -900,10 +900,33 @@ static int _get_report_keys(struct cmd_context *cmd,
 			    struct report_args *args,
 			    struct single_report_args *single_args)
 {
-	int r = ECMD_PROCESSED;
+	struct arg_value_group_list *current_group;
+	const char *keys;
+	report_idx_t idx;
+	int r = ECMD_FAILED;
 
-	single_args->keys = arg_str_value(cmd, sort_ARG, single_args->keys);
+	dm_list_iterate_items(current_group, &cmd->arg_value_groups) {
+		if (!grouped_arg_is_set(current_group->arg_values, sort_ARG))
+			continue;
 
+		keys = grouped_arg_str_value(current_group->arg_values, sort_ARG, NULL);
+		if (!keys || !*keys) {
+			log_error("Invalid keys string: %s", keys);
+			r = EINVALID_CMD_LINE;
+			goto out;
+		}
+
+		if (!(keys = _get_report_idx(keys, &idx)))
+			goto_out;
+
+		if (!_should_process_report_idx(single_args->report_type, idx))
+			continue;
+
+		args->single_args[idx].keys = keys;
+	}
+
+	r = ECMD_PROCESSED;
+out:
 	return r;
 }
 
