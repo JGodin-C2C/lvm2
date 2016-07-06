@@ -1,236 +1,446 @@
 .TH LVCONVERT 8 "LVM TOOLS #VERSION#" "Red Hat, Inc" \" -*- nroff -*-
 .SH NAME
-lvconvert \(em convert a logical volume from linear to mirror or snapshot
+lvconvert \(em change LV type and other utilities
 .
 .SH SYNOPSIS
-.
-.ad l
+
 .B lvconvert
-.BR \-m | \-\-mirrors
-.IR Mirrors
-.RB [ \-\-type
-.IR SegmentType ]
-.RB [ \-\-mirrorlog
-.RB { disk | core | mirrored }]
-.RB [ \-\-corelog ]
-.RB [ \-R | \-\-regionsize
-.IR MirrorLogRegionSize ]
-.RB [ \-\-stripes
-.IR Stripes
-.RB [ \-I | \-\-stripesize
-.IR StripeSize ]]
-.RB [ \-A | \-\-alloc
-.IR AllocationPolicy ]
-.RB [ \-b | \-\-background ]
-.RB [ \-f | \-\-force ]
-.RB [ \-i | \-\-interval
-.IR Seconds ]
-.RB [ \-\-commandprofile
-.IR ProfileName ]
-.RB [ \-h | \-? | \-\-help ]
-.RB [ \-\-noudevsync ]
-.RB [ \-v | \-\-verbose ]
-.RB [ \-y | \-\-yes ]
-.RB [ \-\-version ]
-.IR LogicalVolume
-.RI \%[ PhysicalVolume [ Path ][ \fB: \fIPE \fR[ \fB\- PE ]]...]
-.sp
-.B lvconvert
-.BR \-\-merge
-.RB [ \-b | \-\-background ]
-.RB [ \-i | \-\-interval
-.IR Seconds ]
-.RB [ \-\-commandprofile
-.IR ProfileName ]
-.RB [ \-h | \-? | \-\-help ]
-.RB [ \-v | \-\-verbose ]
-.RB [ \-\-version ]
-.IR LogicalVolume...
-.sp
-.B lvconvert
-.BR \-s | \-\-snapshot
-.RB [ \-c | \-\-chunksize
-.IR ChunkSize ]
-.RB [ \-Z | \-\-zero
-.RB { y | n }]
-.RB [ \-\-commandprofile
-.IR ProfileName ]
-.RB [ \-h | \-? | \-\-help ]
-.RB [ \-\-noudevsync ]
-.RB [ \-v | \-\-verbose ]
-.RB [ \-\-version ]
-.IR OriginalLogicalVolume
-.IR SnapshotLogicalVolume
-.sp
-.B lvconvert
-.BR \-\-split
-.RB [ \-\-commandprofile
-.IR ProfileName ]
-.RB [ \-h | \-? | \-\-help ]
-.RB [ \-\-noudevsync ]
-.RB [ \-v | \-\-verbose ]
-.IR SplitableLogicalVolume
-.sp
-.B lvconvert
-.BR \-\-splitcache | \-\-uncache
-.RB [ \-\-commandprofile
-.IR ProfileName ]
-.RB [ \-h | \-? | \-\-help ]
-.RB [ \-\-noudevsync ]
-.RB [ \-v | \-\-verbose ]
-.RB [ \-\-version ]
-.IR CacheLogicalVolume
-.sp
-.B lvconvert
-.BR \-\-splitmirrors
-.IR Images
-.RB [ \-\-name
-.IR SplitLogicalVolumeName ]
-.RB [ \-\-trackchanges ]
-.IR MirrorLogicalVolume
-.RB [ \-\-commandprofile
-.IR ProfileName ]
-.RI \%[ SplittablePhysicalVolume [ Path ][ \fB: \fIPE \fR[ \fB\- PE ]]...]
-.sp
-.B lvconvert
-.BR \-\-splitsnapshot
-.RB [ \-\-commandprofile
-.IR ProfileName ]
-.RB [ \-h | \-? | \-\-help ]
-.RB [ \-\-noudevsync ]
-.RB [ \-v | \-\-verbose ]
-.RB [ \-\-version ]
-.IR SnapshotLogicalVolume
-.sp
-.B lvconvert
-.BR \-\-repair
-.RB [ \-\-stripes
-.IR Stripes
-.RB [ \-I | \-\-stripesize
-.IR StripeSize ]]
-.RB [ \-\-commandprofile
-.IR ProfileName ]
-.RB [ \-h | \-? | \-\-help ]
-.RB [ \-v | \-\-verbose ]
-.RB [ \-\-version ]
-.IR LogicalVolume
-.RI [ PhysicalVolume [ Path ]...]
-.sp
-.B lvconvert
-.BR \-\-replace
-.IR PhysicalVolume
-.RB [ \-\-commandprofile
-.IR ProfileName ]
-.RB [ \-h | \-? | \-\-help ]
-.RB [ \-v | \-\-verbose ]
-.RB [ \-\-version ]
-.IR LogicalVolume
-.RI [ PhysicalVolume [ Path ]...]
-.sp
-.B lvconvert
-.BR \-\-type
-.BR cache [ \-pool ]| \-H | \-\-cache
-.RB [ \-\-cachepool
-.IR CachePoolLogicalVolume ]
-.\" |
-.\" .B \-\-pooldatasize
-.\" .IR CachePoolMetadataSize ]
-.RB [ \-c | \-\-chunksize
-.IR ChunkSize ]
-.RB [ \-\-cachemode
-.RB { writeback | writethrough }]
-.RB [ \-\-cachepolicy
-.IR Policy ]
-.RB [ \-\-cachesettings
-.IR Key \fB= Value ]...
-.RB [ \-\-poolmetadata
-.IR CachePoolMetadataLogicalVolume
-.RB |
-.BR \-\-poolmetadatasize
-.IR CachePoolMetadataSize ]
-.RB [ \-\-poolmetadataspare
-.RB { y | n }]
-.RB [ \-\-commandprofile
-.IR ProfileName ]
-.RB [ \-h | \-? | \-\-help ]
-.RB [ \-v | \-\-verbose ]
-.RB [ \-\-version ]
-.IR LogicalVolume
-.RI \%[ PhysicalVolume [ Path ][ \fB: \fIPE \fR[ \fB\- PE ]]...]
-.sp
-.B lvconvert
-.BR \-\-type
-.BR thin [ \-pool ]| \-T | \-\-thin
-.RB [ \-\-originname
-.IR NewExternalOriginVolumeName ]
-.RB [ \-\-thinpool
-.IR ThinPoolLogicalVolume
-.RB [ \-c | \-\-chunksize
-.IR ChunkSize ]
-.RB [ \-\-discards
-.RB { ignore | nopassdown | passdown }]
-.RB [ \-\-poolmetadata
-.IR ThinPoolMetadataLogicalVolume
-.RB |
-.BR \-\-poolmetadatasize
-.IR ThinPoolMetadataSize ]
-.RB [ \-r | \-\-readahead
-.RB { \fIReadAheadSectors | auto | none }]
-.RB [ \-\-stripes
-.IR Stripes
-.RB [ \-I | \-\-stripesize
-.IR StripeSize ]]
-.RB [ \-\-poolmetadataspare
-.RB { y | n }]
-.RB [ \-Z | \-\-zero
-.RB { y | n }]]
-.RB [ \-\-commandprofile
-.IR ProfileName ]
-.RB [ \-h | \-? | \-\-help ]
-.RB [ \-v | \-\-verbose ]
-.RB [ \-\-version ]
-.RI [[ ExternalOrigin | ThinPool ] LogicalVolume
-.RI \%[ PhysicalVolume [ Path ][ \fB: \fIPE \fR[ \fB\- PE ]]...]]
-.ad b
-.sp
-.
+.RI [ OPTION ]...
+.IR VolumeGroup / LogicalVolume
+
 .SH DESCRIPTION
-lvconvert is used to change the segment type (i.e. linear, mirror, etc) or
-characteristics of a logical volume.  For example, it can add or remove the
-redundant images of a logical volume, change the log type of a mirror, or
-designate a logical volume as a snapshot repository.
+
+lvconvert changes the LV type and includes various LV utilities.
+
+To display the current LV type, run the command:
+
+.B lvs \-o name,segtype VG/LV
+
+To change the LV type, run the command:
+
+.B lvconvert \-\-type
+.I NewType
+.B VG/LV
+
+.SS LV types
+
+The LV type is also called the "segment type" or "segtype".
+
+LVs with the following types can be modified by lvconvert:
+.B striped,
+.B snapshot,
+.B mirror,
+.B raid*,
+.B thin,
+.B cache,
+.B thin\-pool,
+.B cache\-pool.
+
+The specific operations available on each LV type are listed below.
+
+The
+.B linear
+type is equivalent to the
+.B striped
+type.  These may sometimes be used interchangably.
+
+In most cases, the
+.B mirror
+type is deprecated and the
+.B raid1
+type should be used instead.  They are both implementations of
+mirroring.
+
+The
+.B raid*
+type refers to one of many raid levels, e.g.
+.B raid1,
+.B raid5.
+See
+.BR lvmraid (7)
+for a full list.
+
+.SS LV layers
+
+In some cases, an LV is a single device mapper (dm) layer above physical
+devices.  In other cases, layers of hidden LVs exists between the visible
+LV and physical devices.  LVs in the middle layers are sometimes called
+sub LVs.
+
+Changing the LV type will often change the composition of sub LVs.
+
+Sub LVs can be displayed with the command
+.B lvs -a.
+
+Sometimes, a command run on an LV may actually operate on a sub LV of
+the specified LV.  These cases are noted below.
+
+
+.SH COMMANDS
+
+.SS Operations on a StripedLV with type striped or linear:
+
+\&
+
+.B lvconvert \-\-merge
+VG/StripedLV
 .br
-If the conversion requires allocation of physical extents (for
-example, when converting from linear to mirror) and you specify
-one or more PhysicalVolumes (optionally with ranges of physical
-extents), allocation of physical extents will be restricted to
-these physical extents.  If the conversion frees physical extents
-(for example, when converting from a mirror to a linear, or reducing
-mirror legs) and you specify one or more PhysicalVolumes,
-the freed extents come first from the specified PhysicalVolumes.
-.
+\[bu]
+Merge StripedLV into an LV when it is a previously split mirror.
+.br
+\[bu]
+See --splitmirror.
+.br
+\[bu]
+FIXME: use --merge-mirror
+
+.B lvconvert \-\-type snapshot
+VG/StripedLV VG/SnapshotLV
+.br
+\[bu]
+Combine StripedLV with SnapshotLV which was previously split.
+.br
+\[bu]
+See --splitsnapshot.
+
+.B lvconvert \-\-type thin
+VG/StripedLV
+.br
+\[bu]
+Convert StripedLV to type thin with an external origin.
+.br
+\[bu]
+Also specify a thin pool to use, see \-\-thinpool.
+
+.B lvconvert \-\-type cache
+VG/StripedLV
+.br
+\[bu]
+Convert StripedLV to type cache.
+.br
+\[bu]
+Also specify a cache pool to use, see \-\-cachepool.
+
+.B lvconvert \-\-type thin\-pool
+VG/StripedLV
+.br
+\[bu]
+Convert StripedLV to type thin\-pool.
+
+.B lvconvert \-\-type cache\-pool
+VG/StripedLV
+.br
+\[bu]
+Convert StripedLV to type cache\-pool.
+
+.B lvconvert \-\-type mirror
+VG/StripedLV
+.br
+\[bu]
+Convert StripedLV to type mirror.
+.br
+\[bu]
+Also specify the number of mirrors, see \-\-mirrors.
+
+.B lvconvert \-\-type raid*
+VG/StripedLV
+.br
+\[bu]
+Convert StripedLV to type raid*.
+.br
+\[bu]
+Also specify the number of mirrors, see \-\-mirrors.
+
+.SS Operations on RaidLV with type raid*:
+
+\&
+
+.B lvconvert \-\-mirrors
+Number
+VG/RaidLV
+.br
+\[bu]
+Change the number of images in RaidLV.
+
+.B lvconvert \-\-splitmirrors
+Number
+VG/RaidLV
+.br
+\[bu]
+Split images from RaidLV and use them to create a new LV.
+.br
+\[bu]
+Also specify \-\-name for new LV, or use \-\-trackchanges.
+
+.B lvconvert \-\-merge
+VG/RaidLV
+.br
+\[bu]
+Merge RaidLV into an LV when it is a previously split mirror.
+.br
+\[bu]
+See --splitmirror.
+.br
+\[bu]
+FIXME: use --merge-mirror
+
+.B lvconvert \-\-repair
+VG/RaidLV
+.br
+\[bu]
+Replace failed PVs in RaidLV.
+
+.B lvconvert \-\-replace
+PV
+VG/RaidLV
+.br
+\[bu]
+Replace a specific PV in a raid* LV with another PV.
+.br
+\[bu]
+The replacement PV can be optionally specified, see below.
+
+.B lvconvert \-\-type snapshot
+VG/RaidLV
+VG/SnapshotLV
+.br
+\[bu]
+Combine RaidLV with SnapshotLV that was previously split.
+.br
+\[bu]
+See \-\-splitsnapshot.
+
+.B lvconvert \-\-type thin
+VG/RaidLV
+.br
+\[bu]
+Convert RaidLV to type thin with an external origin.
+.br
+\[bu]
+Also specify a thin pool to use, see \-\-thinpool.
+
+.B lvconvert \-\-type cache
+VG/RaidLV
+.br
+\[bu]
+Convert RaidLV to type cache.
+.br
+\[bu]
+Also specify a cache pool to use, see \-\-cachepool.
+
+.B lvconvert \-\-type thin\-pool
+VG/RaidLV
+.br
+\[bu]
+Convert RaidLV to type thin\-pool.
+
+.B lvconvert \-\-type cache\-pool
+VG/RaidLV
+.br
+\[bu]
+Convert RaidLV to type cache\-pool.
+
+.B lvconvert \-\-type raid*
+VG/RaidLV
+.br
+\[bu]
+Convert RaidLV to use a different raid level.
+
+.B lvconvert \-\-type striped
+VG/RaidLV
+.br
+\[bu]
+Convert RaidLV to type striped.
+
+.B lvconvert \-\-type linear
+VG/RaidLV
+.br
+\[bu]
+Convert RaidLV to type linear.
+
+.SS Operations on MirrorLV with type mirror:
+
+\&
+
+.B lvconvert \-\-mirrors
+Number
+VG/MirrorLV
+.br
+\[bu]
+Change the number of images in MirrorLV.
+
+.B lvconvert \-\-splitmirrors
+Number
+VG/MirrorLV
+.br
+\[bu]
+Split images from MirrorLV and use them to create a new LV.
+.br
+\[bu]
+Also specify \-\-name for new LV.
+
+.B lvconvert \-\-mirrorlog
+LogType
+VG/MirrorLV
+.br
+\[bu]
+Change the type of log used by MirrorLV.
+.br
+\[bu]
+See --mirrorlog and --corelog for log types.
+
+.B lvconvert \-\-repair
+VG/MirrorLV
+.br
+\[bu]
+Replace failed PVs in MirrorLV.
+
+.B lvconvert \-\-type linear
+VG/MirrorLV
+.br
+\[bu]
+Convert MirrorLV to type linear.
+
+.B lvconvert \-\-type raid*
+VG/MirrorLV
+.br
+\[bu]
+Convert MirrorLV to type raid*.
+.br
+\[bu]
+See lvmraid(7) for permitted raid levels.
+
+.SS Operations on CachePoolLV with type cache\-pool:
+
+\&
+
+.B lvconvert \-\-splitcache
+VG/CachePoolLV
+.br
+\[bu]
+Split the cache LV from CachePoolLV.
+
+.SS Operations on CacheLV with type cache:
+
+\&
+
+.B lvconvert \-\-splitcache
+VG/CacheLV
+.br
+\[bu]
+Split and keep the cache pool from CacheLV.
+
+.B lvconvert \-\-uncache
+VG/CacheLV
+.br
+\[bu]
+Split and remove the cache pool from CacheLV.
+
+.B lvconvert \-\-splitmirrors
+Number
+VG/CacheLV
+.br
+\[bu]
+Split images from the mirrored origin of CacheLV to create a new LV.
+.br
+\[bu]
+Operates on mirror or raid1 sub LV.
+.br
+\[bu]
+Also specify \-\-name for new LV, or use \-\-trackchanges.
+
+.B lvconvert \-\-type thin\-pool
+VG/CacheLV
+.br
+\[bu]
+Convert CacheLV to type thin-pool.
+.br
+\[bu]
+The CacheLV is used for thin pool data.
+
+
+.SS Operations on ThinPoolLV with type thin\-pool:
+
+\&
+
+.B lvconvert \-\-splitcache
+VG/ThinPoolLV
+.br
+\[bu]
+Split and keep the cache pool from the data portion of ThinPoolLV.
+.br
+\[bu]
+Operates on the data sub LV of the thin pool LV.
+.br
+\[bu]
+The data sub LV of the thin pool must be a cache LV.
+
+.B lvconvert \-\-uncache
+VG/ThinPoolLV
+.br
+\[bu]
+Split and remove the cache pool from the data portion of ThinPoolLV.
+.br
+\[bu]
+Operates on the data sub LV of the thin pool LV.
+.br
+\[bu]
+The data sub LV of the thin pool must be a cache LV.
+
+.B lvconvert \-\-type cache
+VG/ThinPoolLV
+.br
+\[bu]
+Convert the data portion of ThinPoolLV to type cache.
+.br
+\[bu]
+Operates on the data sub LV of the thin pool LV.
+
+.B lvconvert \-\-repair
+VG/ThinPoolLV
+.br
+\[bu]
+Repair ThinPoolLV.
+
+.SS Operations on ThinLV with type thin:
+
+\&
+
+.B lvconvert \-\-merge
+VG/ThinLV
+.br
+\[bu]
+Merge ThinLV into its origin LV.
+.br
+\[bu]
+ThinLV must have been created as a snapshot of another thin LV.
+.br
+\[bu]
+FIXME: use --merge-snapshot
+
+.SS Operations on SnapshotLV with type snapshot:
+
+\&
+
+.B lvconvert \-\-splitsnapshot
+VG/SnapshotLV
+.br
+\[bu]
+Separate COW snapshot SnapshotLV from its origin LV.
+
+.B lvconvert \-\-merge
+VG/SnapshotLV
+.br
+\[bu]
+Merge COW snapshot SnapshotLV into its origin.
+.br
+\[bu]
+FIXME: use --merge-snapshot
+
 .SH OPTIONS
 .
 See \fBlvm\fP(8) for common options.
 .br
-Exactly one of
-.BR \-\-cache ,
-.BR \-\-corelog ,
-.BR \-\-merge ,
-.BR \-\-mirrorlog ,
-.BR \-\-mirrors ,
-.BR \-\-repair ,
-.BR \-\-replace ,
-.BR \-\-snapshot ,
-.BR \-\-split ,
-.BR \-\-splitcache ,
-.BR \-\-splitsnapshot ,
-.BR \-\-splitmirrors ,
-.BR \-\-thin ,
-.BR \-\-type
-or
-.BR \-\-uncache
-arguments is required.
 .
 .HP
 .BR \-b ,
@@ -637,67 +847,49 @@ Note: Provisioning of large zeroed chunks negatively impacts performance.
 .
 .SH Examples
 .
-Converts the linear logical volume "vg00/lvol1" to a two-way mirror
-logical volume:
-.sp
-.B lvconvert \-m1 vg00/lvol1
+Convert a linear LV to a two-way mirror LV:
+.br
+.B lvconvert \-\-type mirror \-\-mirrors 1 vg/lvol1
 
-Converts the linear logical volume "vg00/lvol1" to a two-way RAID1
-logical volume:
-.sp
-.B lvconvert \-\-type raid1 \-m1 vg00/lvol1
+Convert a linear LV to a two-way RAID1 LV:
+.br
+.B lvconvert \-\-type raid1 \-\-mirrors 1 vg/lvol1
 
-Converts a mirror with a disk log to a mirror with an in-memory log:
-.sp
-.B lvconvert \-\-mirrorlog core vg00/lvol1
+Convert a mirror LV to use an in\-memory log:
+.br
+.B lvconvert \-\-mirrorlog core vg/lvol1
 
-Converts a mirror with an in-memory log to a mirror with a disk log:
-.sp
-.B lvconvert \-\-mirrorlog disk vg00/lvol1
+Convert a mirror LV to use a disk log:
+.br
+.B lvconvert \-\-mirrorlog disk vg/lvol1
 
-Converts a mirror logical volume to a linear logical volume:
-.sp
-.B lvconvert \-m0 vg00/lvol1
+Convert a mirror or raid1 LV to a linear LV:
+.br
+.B lvconvert --type linear vg/lvol1
 
-Converts a mirror logical volume to a RAID1 logical volume with the same
-number of images:
-.sp
-.B lvconvert \-\-type raid1 vg00/mirror_lv
+Convert mirror LV to type raid1 with the same number of images:
+.br
+.B lvconvert \-\-type raid1 vg/lvol1
 
-Converts logical volume "vg00/lvol2" to snapshot of original volume
-"vg00/lvol1":
-.sp
-.B lvconvert \-s vg00/lvol1 vg00/lvol2
+Split and merge a COW snapshot:
+.br
+TODO
 
-Converts linear logical volume "vg00/lvol1" to a two-way mirror,
-using physical extents /dev/sda:0\-15 and /dev/sdb:0\-15 for allocation
-of new extents:
-.sp
-.B lvconvert \-m1 vg00/lvol1 /dev/sda:0\-15 /dev/sdb:0\-15
+Convert a linear LV to a two-way mirror LV, allocating new extents from specific
+PV ranges:
+.br
+.B lvconvert \-\-mirrors 1 vg/lvol1 /dev/sda:0\-15 /dev/sdb:0\-15
 
-Converts mirror logical volume "vg00/lvmirror1" to linear, freeing physical
-extents from /dev/sda:
-.sp
-.B lvconvert \-m0 vg00/lvmirror1 /dev/sda
-
-Merges "vg00/lvol1_snap" into its origin:
-.sp
-.B lvconvert \-\-merge vg00/lvol1_snap
-
-If "vg00/lvol1", "vg00/lvol2" and "vg00/lvol3" are all tagged with "some_tag"
-each snapshot logical volume will be merged serially,
-e.g.: "vg00/lvol1", then "vg00/lvol2", then "vg00/lvol3".
-If \-\-background were used it would start
-all snapshot logical volume merges in parallel.
-.sp
-.B lvconvert \-\-merge @some_tag
+Convert a mirror LV to a linear LV, freeing physical extents from a specific PV:
+.br
+.B lvconvert \-\-type linear vg/lvol1 /dev/sda
 
 Extracts one image from the mirror, making it a new logical volume named
 "lv_split".  The mirror the image is extracted from is reduced accordingly.
 If it was a 2-way mirror (created with '-m 1'), then the resulting original
 volume will be linear.
 .sp
-.B lvconvert \-\-splitmirrors 1 \-\-name lv_split vg00/lvmirror1
+.B lvconvert \-\-splitmirrors 1 \-\-name lv_split vg/lvmirror1
 
 A mirrored logical volume created with \-\-type raid1 can use the
 \-\-trackchanges argument when splitting off an image.
@@ -706,55 +898,55 @@ read-only device and track the changes made to the mirror while it is detached.
 The split-off device has a name of the form lv_raid1_rimage_N, where N is
 a number, and it cannot be renamed.
 .sp
-.B lvconvert \-\-splitmirrors 1 \-\-trackchanges vg00/lv_raid1
+.B lvconvert \-\-splitmirrors 1 \-\-trackchanges vg/lv_raid1
 
 Merge an image that was detached temporarily from its mirror with
 the \-\-trackchanges argument back into its original mirror and
 bring its contents back up-to-date.
 .sp
-.B lvconvert \-\-merge vg00/lv_raid1_rimage_1
+.B lvconvert \-\-merge vg/lv_raid1_rimage_1
 
 Replaces the physical volume "/dev/sdb1" in the RAID1 logical volume "my_raid1"
 with the specified physical volume "/dev/sdf1".  Had the argument "/dev/sdf1"
 been left out, lvconvert would attempt to find a suitable device from those
 available in the volume group.
 .sp
-.B lvconvert \-\-replace /dev/sdb1 vg00/my_raid1 /dev/sdf1
+.B lvconvert \-\-replace /dev/sdb1 vg/my_raid1 /dev/sdf1
 
-Convert the logical volume "vg00/lvpool" into a thin pool with chunk size 128KiB
-and convert "vg00/lv1" into a thin volume using this pool. Original "vg00/lv1"
+Convert the logical volume "vg/lvpool" into a thin pool with chunk size 128KiB
+and convert "vg/lv1" into a thin volume using this pool. Original "vg/lv1"
 is used as an external read-only origin, where all writes to such volume
-are stored in the "vg00/lvpool".
+are stored in the "vg/lvpool".
 .sp
-.B lvconvert \-\-type thin \-\-thinpool vg00/lvpool \-c 128 lv1
+.B lvconvert \-\-type thin \-\-thinpool vg/lvpool \-c 128 lv1
 
-Convert the logical volume "vg00/origin" into a thin volume from the thin pool
-"vg00/lvpool". This thin volume will use "vg00/origin" as an external origin
+Convert the logical volume "vg/origin" into a thin volume from the thin pool
+"vg/lvpool". This thin volume will use "vg/origin" as an external origin
 volume for unprovisioned areas in this volume.
-For the read-only external origin use the new name "vg00/external".
+For the read-only external origin use the new name "vg/external".
 .sp
-.B lvconvert \-T \-\-thinpool vg00/lvpool \-\-originname external vg00/origin
+.B lvconvert \-T \-\-thinpool vg/lvpool \-\-originname external vg/origin
 
 Convert an existing logical volume to a cache pool LV using the
 given cache metadata LV.
 .sp
-.B lvconvert \-\-type cache-pool \-\-poolmetadata vg00/lvx_meta vg00/lvx_data
+.B lvconvert \-\-type cache-pool \-\-poolmetadata vg/lvx_meta vg/lvx_data
 .br
-.B lvrename vg00/lvx_data vg00/lvx_cachepool
+.B lvrename vg/lvx_data vg/lvx_cachepool
 .sp
 Convert an existing logical volume to a cache LV using the given
 cache pool LV and chunk size 128KiB.
 .sp
-.B lvconvert \-\-cache \-\-cachepool vg00/lvx_cachepool -c 128 vg00/lvx
+.B lvconvert \-\-cache \-\-cachepool vg/lvx_cachepool -c 128 vg/lvx
 .sp
-Detach cache pool from an existing cached logical volume "vg00/lvol1" and
+Detach cache pool from an existing cached logical volume "vg/lvol1" and
 leave cache pool unused.
 .sp
-.B lvconvert \-\-splitcache vg00/lvol1
+.B lvconvert \-\-splitcache vg/lvol1
 .sp
-Drop cache pool from an existing cached logical volume "vg00/lvol1".
+Drop cache pool from an existing cached logical volume "vg/lvol1".
 .sp
-.B lvconvert \-\-uncache vg00/lvol1
+.B lvconvert \-\-uncache vg/lvol1
 
 .SH SEE ALSO
 .BR lvm (8),
