@@ -47,6 +47,7 @@ test_pvmove_resume() {
 	while dmsetup status "$vg-$lv2"; do dmsetup remove "$vg-$lv2" || true; done
 	while dmsetup status "$vg-pvmove0"; do dmsetup remove "$vg-pvmove0" || true; done
 
+	lvs -a -vvvv $vg
 	check lv_attr_bit type $vg/pvmove0 "p"
 
 	if test -e LOCAL_CLVMD ; then
