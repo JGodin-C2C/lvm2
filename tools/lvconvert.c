@@ -4052,6 +4052,8 @@ static int _convert_thin_volume(struct cmd_context *cmd, struct logical_volume *
 static int _convert_thin_pool(struct cmd_context *cmd, struct logical_volume *lv,
 			      struct lvconvert_params *lp)
 {
+	const char *new_type = arg_str_value(cmd, type_ARG, NULL);
+
 	if (arg_is_set(cmd, splitcache_ARG))
 		return _convert_thin_pool_splitcache(cmd, lv, lp);
 
@@ -4061,7 +4063,7 @@ static int _convert_thin_pool(struct cmd_context *cmd, struct logical_volume *lv
 	if (arg_is_set(cmd, uncache_ARG))
 		return _convert_thin_pool_uncache(cmd, lv, lp);
 
-	if (lp->cache)
+	if ((new_type && !strcmp(new_type, SEG_TYPE_NAME_CACHE)) || arg_is_set(cmd, cache_ARG))
 		return _convert_thin_pool_cache(cmd, lv, lp);
 
 	if (arg_is_set(cmd, repair_ARG))
@@ -4085,6 +4087,8 @@ static int _convert_thin_pool(struct cmd_context *cmd, struct logical_volume *lv
 static int _convert_cache_volume(struct cmd_context *cmd, struct logical_volume *lv,
 				 struct lvconvert_params *lp)
 {
+	const char *new_type = arg_str_value(cmd, type_ARG, NULL);
+
 	if (arg_is_set(cmd, splitcache_ARG))
 		return _convert_cache_volume_splitcache(cmd, lv, lp);
 
@@ -4099,7 +4103,7 @@ static int _convert_cache_volume(struct cmd_context *cmd, struct logical_volume 
 
 	/* Using --thinpool is ambiguous and not preferred. */
 
-	if (!strcmp(lp->type_str, SEG_TYPE_NAME_THIN_POOL) || arg_is_set(cmd, thinpool_ARG))
+	if ((new_type && !strcmp(new_type, SEG_TYPE_NAME_THIN_POOL)) || arg_is_set(cmd, thinpool_ARG))
 		return _convert_cache_volume_thin_pool(cmd, lv, lp);
 
 	/* The --thinpool alternative for --type thin-pool is not preferred, so not shown. */
@@ -4137,6 +4141,12 @@ static int _convert_cache_pool(struct cmd_context *cmd, struct logical_volume *l
 static int _convert_mirror(struct cmd_context *cmd, struct logical_volume *lv,
 			   struct lvconvert_params *lp)
 {
+	const char *new_type = arg_str_value(cmd, type_ARG, NULL);
+	const struct segment_type *new_segtype = NULL;
+
+	if (new_type)
+		new_segtype = get_segtype_from_string(cmd, new_type);
+
 	if (arg_is_set(cmd, mirrors_ARG))
 		return _convert_mirror_number(cmd, lv, lp);
 
@@ -4149,10 +4159,10 @@ static int _convert_mirror(struct cmd_context *cmd, struct logical_volume *lv,
 	if (arg_is_set(cmd, repair_ARG))
 		return _convert_mirror_repair(cmd, lv, lp);
 
-	if (_linear_type_requested(lp->type_str))
+	if (new_type && !strcmp(new_type, SEG_TYPE_NAME_LINEAR))
 		return _convert_mirror_linear(cmd, lv, lp);
 
-	if (segtype_is_raid(lp->segtype))
+	if (new_type && new_segtype && segtype_is_raid(new_segtype))
 		return _convert_mirror_raid(cmd, lv, lp);
 
 	/*
@@ -4187,6 +4197,12 @@ static int _convert_mirror(struct cmd_context *cmd, struct logical_volume *lv,
 static int _convert_raid(struct cmd_context *cmd, struct logical_volume *lv,
 			 struct lvconvert_params *lp)
 {
+	const char *new_type = arg_str_value(cmd, type_ARG, NULL);
+	const struct segment_type *new_segtype = NULL;
+
+	if (new_type)
+		new_segtype = get_segtype_from_string(cmd, new_type);
+
 	if (arg_is_set(cmd, mirrors_ARG))
 		return _convert_raid_number(cmd, lv, lp);
 
@@ -4202,32 +4218,32 @@ static int _convert_raid(struct cmd_context *cmd, struct logical_volume *lv,
 	if (arg_is_set(cmd, replace_ARG))
 		return _convert_raid_replace(cmd, lv, lp);
 
-	if (!strcmp(lp->type_str, SEG_TYPE_NAME_SNAPSHOT) || arg_is_set(cmd, snapshot_ARG))
+	if ((new_type && !strcmp(new_type, SEG_TYPE_NAME_SNAPSHOT)) || arg_is_set(cmd, snapshot_ARG))
 		return _convert_raid_snapshot(cmd, lv, lp);
 
-	if (lp->thin)
+	if ((new_type && !strcmp(new_type, SEG_TYPE_NAME_THIN)) || arg_is_set(cmd, thin_ARG))
 		return _convert_raid_thin(cmd, lv, lp);
 
-	if (lp->cache)
+	if ((new_type && !strcmp(new_type, SEG_TYPE_NAME_CACHE)) || arg_is_set(cmd, cache_ARG))
 		return _convert_raid_cache(cmd, lv, lp);
 
 	/* Using --thinpool is ambiguous and not preferred. */
 
-	if (!strcmp(lp->type_str, SEG_TYPE_NAME_THIN_POOL) || arg_is_set(cmd, thinpool_ARG))
+	if ((new_type && !strcmp(new_type, SEG_TYPE_NAME_THIN_POOL)) || arg_is_set(cmd, thinpool_ARG))
 		return _convert_raid_thin_pool(cmd, lv, lp);
 
 	/* Using --cachepool is ambiguous and not preferred. */
 
-	if (!strcmp(lp->type_str, SEG_TYPE_NAME_CACHE_POOL) || arg_is_set(cmd, cachepool_ARG))
+	if ((new_type && !strcmp(new_type, SEG_TYPE_NAME_CACHE_POOL)) || arg_is_set(cmd, cachepool_ARG))
 		return _convert_raid_cache_pool(cmd, lv, lp);
 
-	if (segtype_is_raid(lp->segtype))
+	if (new_type && new_segtype && segtype_is_raid(new_segtype))
 		return _convert_raid_raid(cmd, lv, lp);
 
-	if (!strcmp(lp->type_str, SEG_TYPE_NAME_STRIPED))
+	if (new_type && !strcmp(new_type, SEG_TYPE_NAME_STRIPED))
 		return _convert_raid_striped(cmd, lv, lp);
 
-	if (_linear_type_requested(lp->type_str))
+	if (new_type && !strcmp(new_type, SEG_TYPE_NAME_LINEAR))
 		return _convert_raid_linear(cmd, lv, lp);
 
 	/* The --thinpool alternative for --type thin-pool is not preferred, so not shown. */
@@ -4253,35 +4269,40 @@ static int _convert_raid(struct cmd_context *cmd, struct logical_volume *lv,
 static int _convert_striped(struct cmd_context *cmd, struct logical_volume *lv,
 			    struct lvconvert_params *lp)
 {
+	const char *new_type = arg_str_value(cmd, type_ARG, NULL);
+	const struct segment_type *new_segtype = NULL;
 	const char *mirrors_type = find_config_tree_str(cmd, global_mirror_segtype_default_CFG, NULL);
+
+	if (new_type)
+		new_segtype = get_segtype_from_string(cmd, new_type);
 
 	/* FIXME: add --merge-mirror to make this distinct from --merge-snapshot. */
 	if (arg_is_set(cmd, merge_ARG))
 		return _convert_striped_merge(cmd, lv, lp);
 
-	if (!strcmp(lp->type_str, SEG_TYPE_NAME_SNAPSHOT) || arg_is_set(cmd, snapshot_ARG))
+	if ((new_type && !strcmp(new_type, SEG_TYPE_NAME_SNAPSHOT)) || arg_is_set(cmd, snapshot_ARG))
 		return _convert_striped_snapshot(cmd, lv, lp);
 
-	if (lp->thin)
+	if ((new_type && !strcmp(new_type, SEG_TYPE_NAME_THIN)) || arg_is_set(cmd, thin_ARG))
 		return _convert_striped_thin(cmd, lv, lp);
 
-	if (lp->cache)
+	if ((new_type && !strcmp(new_type, SEG_TYPE_NAME_CACHE)) || arg_is_set(cmd, cache_ARG))
 		return _convert_striped_cache(cmd, lv, lp);
 
 	/* Using --thinpool is ambiguous and not preferred. */
 
-	if (!strcmp(lp->type_str, SEG_TYPE_NAME_THIN_POOL) || arg_is_set(cmd, thinpool_ARG))
+	if ((new_type && !strcmp(new_type, SEG_TYPE_NAME_THIN_POOL)) || arg_is_set(cmd, thinpool_ARG))
 		return _convert_striped_thin_pool(cmd, lv, lp);
 
 	/* Using --cachepool is ambiguous and not preferred. */
 
-	if (!strcmp(lp->type_str, SEG_TYPE_NAME_CACHE_POOL) || arg_is_set(cmd, cachepool_ARG))
+	if ((new_type && !strcmp(new_type, SEG_TYPE_NAME_CACHE_POOL)) || arg_is_set(cmd, cachepool_ARG))
 		return _convert_striped_cache_pool(cmd, lv, lp);
 
-	if (!strcmp(lp->type_str, SEG_TYPE_NAME_MIRROR))
+	if (new_type && !strcmp(new_type, SEG_TYPE_NAME_MIRROR))
 		return _convert_striped_mirror(cmd, lv, lp);
 
-	if (segtype_is_raid(lp->segtype))
+	if (new_type && new_segtype && segtype_is_raid(new_segtype))
 		return _convert_striped_raid(cmd, lv, lp);
 
 	/* --mirrors can mean --type mirror or --type raid1 depending on config setting. */
