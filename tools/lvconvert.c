@@ -37,7 +37,53 @@
  * deprecated.  (The same is still needed for --merge.)
  */
 
+typedef enum {
+	OP_COW_SNAPSHOT_SPLITSNAPSHOT,
+	OP_COW_SNAPSHOT_MERGE,
+	OP_THIN_VOLUME_MERGE,
+	OP_THIN_POOL_SPLITCACHE,
+	OP_THIN_POOL_UNCACHE,
+	OP_THIN_POOL_REPAIR,
+	OP_THIN_POOL_CACHE,
+	OP_THIN_POOL_SWAPMETADATA,
+	OP_CACHE_VOLUME_SPLITCACHE,
+	OP_CACHE_VOLUME_UNCACHE,
+	OP_CACHE_VOLUME_SPLITMIRRORS,
+	OP_CACHE_VOLUME_THIN_POOL,
+	OP_CACHE_POOL_SPLITCACHE,
+	OP_CACHE_POOL_SWAPMETADATA,
+	OP_MIRROR_NUMBER,
+	OP_MIRROR_SPLITMIRRORS,
+	OP_MIRROR_LOG,
+	OP_MIRROR_REPAIR,
+	OP_MIRROR_LINEAR,
+	OP_MIRROR_RAID,
+	OP_RAID_NUMBER,
+	OP_RAID_SPLITMIRRORS,
+	OP_RAID_MERGE,
+	OP_RAID_REPAIR,
+	OP_RAID_REPLACE,
+	OP_RAID_SNAPSHOT,
+	OP_RAID_THIN,
+	OP_RAID_CACHE,
+	OP_RAID_THIN_POOL,
+	OP_RAID_CACHE_POOL,
+	OP_RAID_RAID,
+	OP_RAID_STRIPED,
+	OP_RAID_LINEAR,
+	OP_STRIPED_MERGE,
+	OP_STRIPED_SNAPSHOT,
+	OP_STRIPED_THIN,
+	OP_STRIPED_CACHE,
+	OP_STRIPED_THIN_POOL,
+	OP_STRIPED_CACHE_POOL,
+	OP_STRIPED_MIRROR,
+	OP_STRIPED_RAID
+} lvconvert_op_t;
+
 struct lvconvert_params {
+	lvconvert_op_t op;      /* enum defining the exact lvconvert operation */
+
 	/* Exactly one of these options is chosen */
 	int merge;		/* Either merge_snapshot or merge_mirror is also set */
 	int cache;
@@ -3406,6 +3452,7 @@ static int _lvconvert_cache(struct cmd_context *cmd,
 static int _convert_cow_snapshot_splitsnapshot(struct cmd_context *cmd, struct logical_volume *lv,
 					       struct lvconvert_params *lp)
 {
+	lp->op = OP_COW_SNAPSHOT_SPLITSNAPSHOT;
 	return _lvconvert_splitsnapshot(cmd, lv, lp);
 }
 
@@ -3416,6 +3463,7 @@ static int _convert_cow_snapshot_splitsnapshot(struct cmd_context *cmd, struct l
 static int _convert_cow_snapshot_merge(struct cmd_context *cmd, struct logical_volume *lv,
 				       struct lvconvert_params *lp)
 {
+	lp->op = OP_COW_SNAPSHOT_MERGE;
 	return _lvconvert_merge_old_snapshot(cmd, lv, lp);
 }
 
@@ -3427,6 +3475,7 @@ static int _convert_cow_snapshot_merge(struct cmd_context *cmd, struct logical_v
 static int _convert_thin_volume_merge(struct cmd_context *cmd, struct logical_volume *lv,
 				      struct lvconvert_params *lp)
 {
+	lp->op = OP_THIN_VOLUME_MERGE;
 	return _lvconvert_merge_thin_snapshot(cmd, lv, lp);
 }
 
@@ -3438,6 +3487,8 @@ static int _convert_thin_pool_splitcache(struct cmd_context *cmd, struct logical
 					 struct lvconvert_params *lp)
 {
 	struct logical_volume *sublv1;
+
+	lp->op = OP_THIN_POOL_SPLITCACHE;
 
 	sublv1 = seg_lv(first_seg(lv), 0); /* cached _tdata ? */
 
@@ -3458,6 +3509,8 @@ static int _convert_thin_pool_uncache(struct cmd_context *cmd, struct logical_vo
 {
 	struct logical_volume *sublv1 = NULL;
 
+	lp->op = OP_THIN_POOL_UNCACHE;
+
 	sublv1 = seg_lv(first_seg(lv), 0); /* cached _tdata ? */
 
 	if (!lv_is_cache(sublv1)) {
@@ -3475,6 +3528,7 @@ static int _convert_thin_pool_uncache(struct cmd_context *cmd, struct logical_vo
 static int _convert_thin_pool_repair(struct cmd_context *cmd, struct logical_volume *lv,
 				     struct lvconvert_params *lp)
 {
+	lp->op = OP_THIN_POOL_REPAIR;
 	return _lvconvert_thin_pool_repair(cmd, lv, lp);
 }
 
@@ -3494,6 +3548,8 @@ static int _convert_thin_pool_repair(struct cmd_context *cmd, struct logical_vol
 static int _convert_thin_pool_cache(struct cmd_context *cmd, struct logical_volume *lv,
 				    struct lvconvert_params *lp)
 {
+	lp->op = OP_THIN_POOL_CACHE;
+
 	/* lvconvert --type cache includes an implicit conversion of the cachepool arg to type cache-pool. */
 	if (!_lvconvert_pool(cmd, lv, lp)) {
 		log_error("Implicit conversion of --cachepool arg to type cache-pool failed.");
@@ -3514,6 +3570,7 @@ static int _convert_thin_pool_cache(struct cmd_context *cmd, struct logical_volu
 static int _convert_thin_pool_swapmetadata(struct cmd_context *cmd, struct logical_volume *lv,
 					   struct lvconvert_params *lp)
 {
+	lp->op = OP_THIN_POOL_SWAPMETADATA;
 	return _lvconvert_pool(cmd, lv, lp);
 }
 
@@ -3524,6 +3581,7 @@ static int _convert_thin_pool_swapmetadata(struct cmd_context *cmd, struct logic
 static int _convert_cache_volume_splitcache(struct cmd_context *cmd, struct logical_volume *lv,
 					    struct lvconvert_params *lp)
 {
+	lp->op = OP_CACHE_VOLUME_SPLITCACHE;
 	return _lvconvert_split_cached(cmd, lv);
 }
 
@@ -3534,6 +3592,7 @@ static int _convert_cache_volume_splitcache(struct cmd_context *cmd, struct logi
 static int _convert_cache_volume_uncache(struct cmd_context *cmd, struct logical_volume *lv,
 					 struct lvconvert_params *lp)
 {
+	lp->op = OP_CACHE_VOLUME_UNCACHE;
 	return _lvconvert_uncache(cmd, lv, lp);
 }
 
@@ -3548,6 +3607,8 @@ static int _convert_cache_volume_splitmirrors(struct cmd_context *cmd, struct lo
 					     struct lvconvert_params *lp)
 {
 	struct logical_volume *sublv1;
+
+	lp->op = OP_CACHE_VOLUME_SPLITMIRRORS;
 
 	sublv1 = seg_lv(first_seg(lv), 0);
 
@@ -3572,6 +3633,7 @@ static int _convert_cache_volume_splitmirrors(struct cmd_context *cmd, struct lo
 static int _convert_cache_volume_thin_pool(struct cmd_context *cmd, struct logical_volume *lv,
 					   struct lvconvert_params *lp)
 {
+	lp->op = OP_CACHE_VOLUME_THIN_POOL;
 	return _lvconvert_pool(cmd, lv, lp);
 }
 
@@ -3584,6 +3646,8 @@ static int _convert_cache_pool_splitcache(struct cmd_context *cmd, struct logica
 {
 	struct logical_volume *sublv1;
 	struct lv_segment *seg;
+
+	lp->op = OP_CACHE_POOL_SPLITCACHE;
 
 	/* When passed used cache-pool of used cached LV -> split cached LV */
 
@@ -3613,6 +3677,7 @@ static int _convert_cache_pool_splitcache(struct cmd_context *cmd, struct logica
 static int _convert_cache_pool_swapmetadata(struct cmd_context *cmd, struct logical_volume *lv,
 					    struct lvconvert_params *lp)
 {
+	lp->op = OP_CACHE_POOL_SWAPMETADATA;
 	return _lvconvert_pool(cmd, lv, lp);
 }
 
@@ -3623,6 +3688,7 @@ static int _convert_cache_pool_swapmetadata(struct cmd_context *cmd, struct logi
 static int _convert_mirror_number(struct cmd_context *cmd, struct logical_volume *lv,
 				  struct lvconvert_params *lp)
 {
+	lp->op = OP_MIRROR_NUMBER;
 	return _lvconvert_mirrors(cmd, lv, lp);
 }
 
@@ -3637,6 +3703,7 @@ static int _convert_mirror_number(struct cmd_context *cmd, struct logical_volume
 static int _convert_mirror_splitmirrors(struct cmd_context *cmd, struct logical_volume *lv,
 					struct lvconvert_params *lp)
 {
+	lp->op = OP_MIRROR_SPLITMIRRORS;
 	return _lvconvert_mirrors(cmd, lv, lp);
 }
 
@@ -3647,6 +3714,7 @@ static int _convert_mirror_splitmirrors(struct cmd_context *cmd, struct logical_
 static int _convert_mirror_log(struct cmd_context *cmd, struct logical_volume *lv,
 				  struct lvconvert_params *lp)
 {
+	lp->op = OP_MIRROR_LOG;
 	return _lvconvert_mirrors(cmd, lv, lp);
 }
 
@@ -3662,6 +3730,8 @@ static int _convert_mirror_repair(struct cmd_context *cmd, struct logical_volume
 {
 	struct dm_list *failed_pvs;
 	int ret;
+
+	lp->op = OP_MIRROR_REPAIR;
 
 	ret = _lvconvert_mirrors_repair(cmd, lv, lp);
 
@@ -3683,6 +3753,7 @@ static int _convert_mirror_repair(struct cmd_context *cmd, struct logical_volume
 static int _convert_mirror_linear(struct cmd_context *cmd, struct logical_volume *lv,
 				  struct lvconvert_params *lp)
 {
+	lp->op = OP_MIRROR_LINEAR;
 	return _lvconvert_mirrors(cmd, lv, lp);
 }
 
@@ -3693,6 +3764,7 @@ static int _convert_mirror_linear(struct cmd_context *cmd, struct logical_volume
 static int _convert_mirror_raid(struct cmd_context *cmd, struct logical_volume *lv,
 				struct lvconvert_params *lp)
 {
+	lp->op = OP_MIRROR_RAID;
 	return _lvconvert_raid(lv, lp);
 }
 
@@ -3703,6 +3775,7 @@ static int _convert_mirror_raid(struct cmd_context *cmd, struct logical_volume *
 static int _convert_raid_number(struct cmd_context *cmd, struct logical_volume *lv,
 				struct lvconvert_params *lp)
 {
+	lp->op = OP_RAID_NUMBER;
 	return _lvconvert_raid(lv, lp);
 }
 
@@ -3716,6 +3789,7 @@ static int _convert_raid_number(struct cmd_context *cmd, struct logical_volume *
 static int _convert_raid_splitmirrors(struct cmd_context *cmd, struct logical_volume *lv,
 				      struct lvconvert_params *lp)
 {
+	lp->op = OP_RAID_SPLITMIRRORS;
 	/* FIXME: split the splitmirrors section out of _lvconvert_raid and call it here. */
 	return _lvconvert_raid(lv, lp);
 }
@@ -3728,6 +3802,7 @@ static int _convert_raid_splitmirrors(struct cmd_context *cmd, struct logical_vo
 static int _convert_raid_merge(struct cmd_context *cmd, struct logical_volume *lv,
 			       struct lvconvert_params *lp)
 {
+	lp->op = OP_RAID_MERGE;
 	/* FIXME: split the merge section out of _lvconvert_raid and call it here. */
 	return _lvconvert_raid(lv, lp);
 }
@@ -3744,6 +3819,8 @@ static int _convert_raid_repair(struct cmd_context *cmd, struct logical_volume *
 {
 	struct dm_list *failed_pvs;
 	int ret;
+
+	lp->op = OP_RAID_REPAIR;
 
 	/* FIXME: split the repair section out of _lvconvert_raid and call it here. */
 	ret = _lvconvert_raid(lv, lp);
@@ -3763,6 +3840,7 @@ static int _convert_raid_repair(struct cmd_context *cmd, struct logical_volume *
 static int _convert_raid_replace(struct cmd_context *cmd, struct logical_volume *lv,
 				 struct lvconvert_params *lp)
 {
+	lp->op = OP_RAID_REPLACE;
 	/* FIXME: remove the replace section from _lvconvert_raid */
 	return _lvconvert_raid(lv, lp);
 }
@@ -3778,6 +3856,7 @@ static int _convert_raid_replace(struct cmd_context *cmd, struct logical_volume 
 static int _convert_raid_snapshot(struct cmd_context *cmd, struct logical_volume *lv,
 				  struct lvconvert_params *lp)
 {
+	lp->op = OP_RAID_SNAPSHOT;
 	return _lvconvert_snapshot(cmd, lv, lp);
 }
 
@@ -3797,6 +3876,8 @@ static int _convert_raid_snapshot(struct cmd_context *cmd, struct logical_volume
 static int _convert_raid_thin(struct cmd_context *cmd, struct logical_volume *lv,
 			      struct lvconvert_params *lp)
 {
+	lp->op = OP_RAID_THIN;
+
 	/* lvconvert --thin includes an implicit conversion of the thinpool arg to type thin-pool. */
 	if (!_lvconvert_pool(cmd, lv, lp)) {
 		log_error("Implicit conversion of --thinpool arg to type thin-pool failed.");
@@ -3822,6 +3903,8 @@ static int _convert_raid_thin(struct cmd_context *cmd, struct logical_volume *lv
 static int _convert_raid_cache(struct cmd_context *cmd, struct logical_volume *lv,
 			       struct lvconvert_params *lp)
 {
+	lp->op = OP_RAID_CACHE;
+
 	/* lvconvert --type cache includes an implicit conversion of the cachepool arg to type cache-pool. */
 	if (!_lvconvert_pool(cmd, lv, lp)) {
 		log_error("Implicit conversion of --cachepool arg to type cache-pool failed.");
@@ -3842,6 +3925,7 @@ static int _convert_raid_cache(struct cmd_context *cmd, struct logical_volume *l
 static int _convert_raid_thin_pool(struct cmd_context *cmd, struct logical_volume *lv,
 				   struct lvconvert_params *lp)
 {
+	lp->op = OP_RAID_THIN_POOL;
 	return _lvconvert_pool(cmd, lv, lp);
 }
 
@@ -3852,6 +3936,7 @@ static int _convert_raid_thin_pool(struct cmd_context *cmd, struct logical_volum
 static int _convert_raid_cache_pool(struct cmd_context *cmd, struct logical_volume *lv,
 				    struct lvconvert_params *lp)
 {
+	lp->op = OP_RAID_CACHE_POOL;
 	return _lvconvert_pool(cmd, lv, lp);
 }
 
@@ -3862,6 +3947,7 @@ static int _convert_raid_cache_pool(struct cmd_context *cmd, struct logical_volu
 static int _convert_raid_raid(struct cmd_context *cmd, struct logical_volume *lv,
 			      struct lvconvert_params *lp)
 {
+	lp->op = OP_RAID_RAID;
 	return _lvconvert_raid(lv, lp);
 }
 
@@ -3875,6 +3961,7 @@ static int _convert_raid_raid(struct cmd_context *cmd, struct logical_volume *lv
 static int _convert_raid_striped(struct cmd_context *cmd, struct logical_volume *lv,
 				 struct lvconvert_params *lp)
 {
+	lp->op = OP_RAID_STRIPED;
 	return _lvconvert_raid(lv, lp);
 }
 
@@ -3885,6 +3972,7 @@ static int _convert_raid_striped(struct cmd_context *cmd, struct logical_volume 
 static int _convert_raid_linear(struct cmd_context *cmd, struct logical_volume *lv,
 				struct lvconvert_params *lp)
 {
+	lp->op = OP_RAID_LINEAR;
 	return _lvconvert_raid(lv, lp);
 }
 
@@ -3896,6 +3984,7 @@ static int _convert_raid_linear(struct cmd_context *cmd, struct logical_volume *
 static int _convert_striped_merge(struct cmd_context *cmd, struct logical_volume *lv,
 				  struct lvconvert_params *lp)
 {
+	lp->op = OP_STRIPED_MERGE;
 	return _lvconvert_raid(lv, lp);
 }
 
@@ -3910,6 +3999,7 @@ static int _convert_striped_merge(struct cmd_context *cmd, struct logical_volume
 static int _convert_striped_snapshot(struct cmd_context *cmd, struct logical_volume *lv,
 				     struct lvconvert_params *lp)
 {
+	lp->op = OP_STRIPED_SNAPSHOT;
 	return _lvconvert_snapshot(cmd, lv, lp);
 }
 
@@ -3929,6 +4019,8 @@ static int _convert_striped_snapshot(struct cmd_context *cmd, struct logical_vol
 static int _convert_striped_thin(struct cmd_context *cmd, struct logical_volume *lv,
 				 struct lvconvert_params *lp)
 {
+	lp->op = OP_STRIPED_THIN;
+
 	/* lvconvert --thin includes an implicit conversion of the thinpool arg to type thin-pool. */
 	if (!_lvconvert_pool(cmd, lv, lp)) {
 		log_error("Conversion of --thinpool arg to type thin-pool failed.");
@@ -3955,6 +4047,8 @@ static int _convert_striped_thin(struct cmd_context *cmd, struct logical_volume 
 static int _convert_striped_cache(struct cmd_context *cmd, struct logical_volume *lv,
 				  struct lvconvert_params *lp)
 {
+	lp->op = OP_STRIPED_CACHE;
+
 	/* lvconvert --cache includes an implicit conversion of the cachepool arg to type cache-pool. */
 	if (!_lvconvert_pool(cmd, lv, lp)) {
 		log_error("Conversion of --cachepool arg to type cache-pool failed.");
@@ -3975,6 +4069,7 @@ static int _convert_striped_cache(struct cmd_context *cmd, struct logical_volume
 static int _convert_striped_thin_pool(struct cmd_context *cmd, struct logical_volume *lv,
 				      struct lvconvert_params *lp)
 {
+	lp->op = OP_STRIPED_THIN_POOL;
 	return _lvconvert_pool(cmd, lv, lp);
 }
 
@@ -3985,6 +4080,7 @@ static int _convert_striped_thin_pool(struct cmd_context *cmd, struct logical_vo
 static int _convert_striped_cache_pool(struct cmd_context *cmd, struct logical_volume *lv,
 				       struct lvconvert_params *lp)
 {
+	lp->op = OP_STRIPED_CACHE_POOL;
 	return _lvconvert_pool(cmd, lv, lp);
 }
 
@@ -4002,6 +4098,7 @@ static int _convert_striped_cache_pool(struct cmd_context *cmd, struct logical_v
 static int _convert_striped_mirror(struct cmd_context *cmd, struct logical_volume *lv,
 				   struct lvconvert_params *lp)
 {
+	lp->op = OP_STRIPED_MIRROR;
 	return _lvconvert_mirrors(cmd, lv, lp);
 }
 
@@ -4019,6 +4116,7 @@ static int _convert_striped_mirror(struct cmd_context *cmd, struct logical_volum
 static int _convert_striped_raid(struct cmd_context *cmd, struct logical_volume *lv,
 				 struct lvconvert_params *lp)
 {
+	lp->op = OP_STRIPED_RAID;
 	return _lvconvert_raid(lv, lp);
 }
 
@@ -4425,7 +4523,7 @@ static int _lvconvert(struct cmd_context *cmd, struct logical_volume *lv,
 		lp->zero = (lp->segtype->flags & SEG_CANNOT_BE_ZEROED) ? 0 : arg_int_value(cmd, zero_ARG, 1);
 
 	if (strcmp(lp->type_str, lp->type_str_orig))
-		log_warn("type_str %s type_str_orig %s", lp->type_str, lp->type_str_orig);
+		log_debug("type_str %s type_str_orig %s", lp->type_str, lp->type_str_orig);
 
 	/*
 	 * Each LV type that can be converted.
