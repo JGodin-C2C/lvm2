@@ -4409,6 +4409,9 @@ static int _lvconvert(struct cmd_context *cmd, struct logical_volume *lv,
 	if (lp->snapshot)
 		lp->zero = (lp->segtype->flags & SEG_CANNOT_BE_ZEROED) ? 0 : arg_int_value(cmd, zero_ARG, 1);
 
+	if (arg_is_set(cmd, type_ARG) && strcmp(lp->type_str, arg_str_value(cmd, type_ARG, NULL)))
+		log_error(INTERNAL_ERROR "Cannot determine correct operation with type %s expected %s.", lp->type_str, arg_str_value(cmd, type_ARG, NULL));
+
 	/*
 	 * Each LV type that can be converted.
 	 * (The existing type of the LV, not a requested type.)
