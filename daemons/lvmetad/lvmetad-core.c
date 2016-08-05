@@ -22,6 +22,7 @@
 #include "daemon-server.h"
 #include "daemon-log.h"
 #include "lvm-version.h"
+#include "lvmetad-internal.h"
 #include "lvmetad-client.h"
 
 #include <assert.h>
@@ -203,37 +204,9 @@ struct vg_info {
 #define GLFL_DISABLE_REASON_LVM1       0x00000008
 #define GLFL_DISABLE_REASON_DUPLICATES 0x00000010
 #define GLFL_DISABLE_REASON_VGRESTORE  0x00000020
-
 #define GLFL_DISABLE_REASON_ALL (GLFL_DISABLE_REASON_DIRECT | GLFL_DISABLE_REASON_LVM1 | GLFL_DISABLE_REASON_DUPLICATES | GLFL_DISABLE_REASON_VGRESTORE)
 
 #define VGFL_INVALID 0x00000001
-
-#define CMD_NAME_SIZE 32
-
-typedef struct {
-	daemon_idle *idle;
-	log_state *log; /* convenience */
-	const char *log_config;
-
-	struct dm_hash_table *pvid_to_pvmeta;
-	struct dm_hash_table *device_to_pvid; /* shares locks with above */
-
-	struct dm_hash_table *vgid_to_metadata;
-	struct dm_hash_table *vgid_to_vgname;
-	struct dm_hash_table *vgid_to_outdated_pvs;
-	struct dm_hash_table *vgid_to_info;
-	struct dm_hash_table *vgname_to_vgid;
-	struct dm_hash_table *pvid_to_vgid;
-	char token[128];
-	char update_cmd[CMD_NAME_SIZE];
-	int update_pid;
-	int update_timeout;
-	uint64_t update_begin;
-	uint32_t flags; /* GLFL_ */
-	pthread_mutex_t token_lock;
-	pthread_mutex_t info_lock;
-	pthread_rwlock_t cache_lock;
-} lvmetad_state;
 
 static uint64_t _monotonic_seconds(void)
 {
@@ -2655,7 +2628,9 @@ static response dump(lvmetad_state *s)
 	return res;
 }
 
-static response handler(daemon_state s, client_handle h, request r)
+/* called in context of a per-connection thread */
+
+static response client_handler(daemon_state s, client_handle h, request r)
 {
 	response res;
 	lvmetad_state *state = s.private;
@@ -2822,7 +2797,8 @@ static response handler(daemon_state s, client_handle h, request r)
 	}
 
 	if (!strcmp(rq, "set_global_info") ||
-	    !strcmp(rq, "get_global_info")) {
+	    !strcmp(rq, "get_global_info") ||
+	    !strcmp(rq, "helper_run")) {
 		pthread_mutex_lock(&state->info_lock);
 		info_lock = 1;
 		goto do_rq;
@@ -2872,6 +2848,11 @@ static response handler(daemon_state s, client_handle h, request r)
 	else if (!strcmp(rq, "dump"))
 		res = dump(state);
 
+	else if (!strcmp(rq, "helper_run")) {
+		send_helper_request(&s, r);
+		res = daemon_reply_simple("OK", NULL );
+	}
+
 	else
 		res = reply_fail("request not implemented");
 
@@ -2909,6 +2890,9 @@ static int init(daemon_state *s)
 	if (ls->idle)
 		ls->idle->is_idle = 1;
 
+	if (ls->enable_udev_monitor)
+		setup_udev_monitor(s);
+
 	return 1;
 }
 
@@ -2943,6 +2927,8 @@ static void usage(const char *prog, FILE *file)
 		"   -V       Show version of lvmetad\n"
 		"   -h       Show this help information\n"
 		"   -f       Don't fork, run in the foreground\n"
+		"   -u 0|1   Enable udev monitor and running pvscan on new devs\n"
+		"   -a 0|1   Enable LV autoactivation with pvscan\n"
 		"   -l       Logging message levels (all,fatal,error,warn,info,wire,debug)\n"
 		"   -p       Set path to the pidfile\n"
 		"   -s       Set path to the socket to listen on\n"
@@ -2958,7 +2944,7 @@ int main(int argc, char *argv[])
 	daemon_state s = {
 		.daemon_fini = fini,
 		.daemon_init = init,
-		.handler = handler,
+		.handler = client_handler,
 		.name = "lvmetad",
 		.pidfile = getenv("LVM_LVMETAD_PIDFILE") ? : LVMETAD_PIDFILE,
 		.private = &ls,
@@ -2968,7 +2954,7 @@ int main(int argc, char *argv[])
 	};
 
 	// use getopt_long
-	while ((opt = getopt(argc, argv, "?fhVl:p:s:t:")) != EOF) {
+	while ((opt = getopt(argc, argv, "?fhVl:p:s:t:u:a:")) != EOF) {
 		switch (opt) {
 		case 'h':
 			usage(argv[0], stdout);
@@ -2997,13 +2983,22 @@ int main(int argc, char *argv[])
 			if (di.max_timeouts)
 				s.idle = ls.idle = &di;
 			break;
+		case 'u':
+			ls.enable_udev_monitor = atoi(optarg);
+			break;
+		case 'a':
+			ls.enable_autoactivate = atoi(optarg);
+			break;
 		case 'V':
 			printf("lvmetad version: " LVM_VERSION "\n");
 			exit(1);
 		}
 	}
 
+	setup_helper(&s);
+
 	daemon_start(s);
 
 	return 0;
 }
+

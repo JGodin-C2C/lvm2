@@ -12,6 +12,8 @@
 
 #include "lvmetad-client.h"
 
+#define ARGS_SIZE 128 /* FIXME: get from header */
+
 daemon_handle h;
 
 static void print_reply(daemon_reply reply)
@@ -45,6 +47,7 @@ int main(int argc, char **argv)
 		printf("lvmetactl set_global_disable 0|1\n");
 		printf("lvmetactl set_vg_version <uuid> <name> <version>\n");
 		printf("lvmetactl vg_lock_type <uuid>\n");
+		printf("lvmetactl helper_run <path> <args>\n");
 		return -1;
 	}
 
@@ -234,6 +237,37 @@ int main(int argc, char **argv)
 					   "token = %s", "skip",
 					   "pid = " FMTd64, (int64_t)getpid(),
 					   "cmd = %s", "lvmetactl",
+					   NULL);
+		printf("%s\n", reply.buffer.mem);
+
+	} else if (!strcmp(cmd, "helper_run")) {
+		char args[ARGS_SIZE];
+		int i;
+
+		memset(args, 0, ARGS_SIZE);
+
+		if (argc < 3) {
+			printf("helper_run <path> [<args>]\n");
+			return -1;
+		}
+
+		if (argc > 3) {
+			for (i = 3; i < argc; i++) {
+				if (strlen(argv[i]) + strlen(args) + 2 > ARGS_SIZE) {
+					printf("args too long\n");
+					return -1;
+				}
+				strcat(args, argv[i]);
+				strcat(args, " ");
+			}
+		}
+
+		reply = daemon_send_simple(h, "helper_run",
+					   "token = %s", "skip",
+					   "pid = " FMTd64, (int64_t)getpid(),
+					   "cmd = %s", "lvmetactl",
+					   "runpath = %s", argv[2],
+					   "runargs = %s", args[0] ? args : "",
 					   NULL);
 		printf("%s\n", reply.buffer.mem);
 

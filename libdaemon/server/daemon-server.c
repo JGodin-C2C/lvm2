@@ -630,11 +630,25 @@ void daemon_start(daemon_state s)
 		_reset_timeout(s);
 		FD_ZERO(&in);
 		FD_SET(s.socket_fd, &in);
+
+		if (s.helper_handler)
+			FD_SET(s.helper_fd, &in);
+		if (s.monitor_handler)
+			FD_SET(s.monitor_fd, &in);
+
 		if (select(FD_SETSIZE, &in, NULL, NULL, _get_timeout(s)) < 0 && errno != EINTR)
 			perror("select error");
 		if (FD_ISSET(s.socket_fd, &in)) {
 			timeout_count = 0;
 			handle_connect(s);
+		}
+		if (FD_ISSET(s.helper_fd, &in)) {
+			timeout_count = 0;
+			s.helper_handler(&s);
+		}
+		if (FD_ISSET(s.monitor_fd, &in)) {
+			timeout_count = 0;
+			s.monitor_handler(&s);
 		}
 
 		_reap(s, 0);

@@ -108,9 +108,14 @@ typedef struct daemon_state {
 	int (*daemon_init)(struct daemon_state *st);
 	int (*daemon_fini)(struct daemon_state *st);
 	int (*daemon_main)(struct daemon_state *st);
+	int (*helper_handler)(struct daemon_state *st);
+	int (*monitor_handler)(struct daemon_state *st);
 
 	/* Global runtime info maintained by the framework. */
 	int socket_fd;
+
+	int helper_fd;  /* used in select if helper_handler is set */
+	int monitor_fd; /* used in select if monitor_handler is set */
 
 	log_state *log;
 	struct thread_state *threads;
